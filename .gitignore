@@ -6,3 +6,5 @@ venv/
 outputs/
 *.html
 !static/*.html
+sample_logs/*
+!sample_logs/.gitkeep
