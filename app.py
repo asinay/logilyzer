@@ -499,17 +499,18 @@ def _build_report(
 
   function applyFilters() {{
     const globalNeedle = (document.getElementById('global-search').value || '').toLowerCase();
-    const onLevels = new Set(
-      Array.from(document.querySelectorAll('.lvl-btn.on')).map(b => b.dataset.lvl)
-    );
+    // Levels that are ON — empty set means the buttons section is irrelevant (all off = show all)
+    const activeBtns = Array.from(document.querySelectorAll('.lvl-btn'));
+    const onLevels   = new Set(activeBtns.filter(b => b.classList.contains('on')).map(b => b.dataset.lvl));
+    const allOn      = onLevels.size === activeBtns.length;
 
     document.querySelectorAll('.raw-table').forEach(tbl => {{
-      const tableId      = tbl.id;
-      const container    = tbl.closest('.raw-log');
-      const sel          = container.querySelector('.raw-thread-select');
-      const localSearch  = container.querySelector('.raw-search');
-      const threadFilter = sel        ? sel.value                            : '';
-      const localNeedle  = localSearch ? localSearch.value.toLowerCase()     : '';
+      const tableId     = tbl.id;
+      const container   = tbl.closest('.raw-log');
+      const sel         = container ? container.querySelector('.raw-thread-select') : null;
+      const localInput  = container ? container.querySelector('.raw-search') : null;
+      const threadFilter = sel       ? sel.value.trim()          : '';
+      const localNeedle  = localInput ? localInput.value.toLowerCase().trim() : '';
       let visible = 0;
 
       tbl.querySelectorAll('tbody tr').forEach(tr => {{
@@ -517,24 +518,24 @@ def _build_report(
         const thread = (tr.dataset.thread || '');
         const text   = tr.textContent.toLowerCase();
 
-        const levelOk  = !level || onLevels.has(level) || onLevels.size === 0;
-        const threadOk = !threadFilter  || thread === threadFilter;
-        const globalOk = !globalNeedle  || text.includes(globalNeedle);
-        const localOk  = !localNeedle   || text.includes(localNeedle);
+        // Level: if all on (default) skip check; otherwise row must match an active level
+        const levelOk  = allOn || !level || onLevels.has(level);
+        const threadOk = !threadFilter || thread.trim() === threadFilter;
+        const globalOk = !globalNeedle || text.includes(globalNeedle);
+        const localOk  = !localNeedle  || text.includes(localNeedle);
 
         const show = levelOk && threadOk && globalOk && localOk;
         tr.classList.toggle('hidden', !show);
         if (show) visible++;
 
-        // Highlight local search match in message cell
+        // Highlight best available needle in message cell
         const msgTd = tr.querySelector('td:last-child span');
         if (msgTd) {{
           const needle = localNeedle || globalNeedle;
           const raw = msgTd.getAttribute('data-raw') || msgTd.textContent;
           msgTd.setAttribute('data-raw', raw);
           if (needle && show) {{
-            const lo = raw.toLowerCase();
-            const idx = lo.indexOf(needle);
+            const lo = raw.toLowerCase(), idx = lo.indexOf(needle);
             if (idx >= 0) {{
               msgTd.innerHTML =
                 _esc(raw.slice(0, idx)) +
