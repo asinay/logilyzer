@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logi Report Logs Parser</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #f0f4f8;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* ── Header ──────────────────────────────────────────────── */
+  header {
+    background: #1a3a5c;
+    color: #fff;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 600; }
+  header p  { font-size: .8rem; opacity: .75; margin-top: 2px; }
+
+  /* ── Main layout ─────────────────────────────────────────── */
+  main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+
+  /* ── Cards ───────────────────────────────────────────────── */
+  .card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #1a3a5c; }
+
+  /* ── Drop zone ───────────────────────────────────────────── */
+  #drop-zone {
+    border: 2px dashed #99afc4;
+    border-radius: 6px;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    color: #667;
+  }
+  #drop-zone.drag-over {
+    border-color: #1a3a5c;
+    background: #e8f0f8;
+  }
+  #drop-zone .icon { font-size: 2rem; margin-bottom: .5rem; }
+  #drop-zone p { font-size: .9rem; }
+  #drop-zone small { font-size: .75rem; color: #999; display: block; margin-top: .25rem; }
+  #file-input { display: none; }
+
+  /* ── File list ───────────────────────────────────────────── */
+  #file-list { list-style: none; margin-top: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    background: #f6f8fb;
+    border: 1px solid #dde3ea;
+    border-radius: 6px;
+    padding: .6rem .9rem;
+  }
+  .file-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+  .file-item .fname { font-size: .9rem; flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item .meta  { font-size: .75rem; color: #888; white-space: nowrap; }
+  .badge {
+    font-size: .7rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: #e1ecf7;
+    color: #1a3a5c;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .file-item .remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+  .file-item .remove-btn:hover { color: #dc3545; background: #ffeaea; }
+
+  /* ── Time filter ─────────────────────────────────────────── */
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 180px; }
+  .filter-group label { font-size: .8rem; color: #555; font-weight: 500; }
+  .filter-group input {
+    padding: .45rem .65rem;
+    border: 1px solid #ccd;
+    border-radius: 5px;
+    font-size: .9rem;
+    background: #fafafa;
+    width: 100%;
+  }
+  .filter-group input:focus { outline: none; border-color: #1a3a5c; background: #fff; }
+
+  .time-hint {
+    font-size: .75rem;
+    color: #888;
+    margin-top: .5rem;
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .55rem 1.2rem;
+    border: none;
+    border-radius: 5px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: #1a3a5c; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #235079; }
+  .btn-secondary { background: #e8eef4; color: #1a3a5c; }
+  .btn-secondary:hover:not(:disabled) { background: #d2dde9; }
+
+  .actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .5rem; }
+
+  /* ── Status / progress ───────────────────────────────────── */
+  #status {
+    display: none;
+    align-items: center;
+    gap: .6rem;
+    font-size: .9rem;
+    color: #555;
+    margin-top: .75rem;
+  }
+  #status.visible { display: flex; }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 3px solid #dde;
+    border-top-color: #1a3a5c;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .alert {
+    padding: .65rem .9rem;
+    border-radius: 5px;
+    font-size: .875rem;
+    margin-top: .75rem;
+  }
+  .alert-success { background: #d1fae5; color: #065f46; }
+  .alert-error   { background: #fee2e2; color: #991b1b; }
+  .alert-info    { background: #dbeafe; color: #1e40af; }
+
+  /* ── Empty state ─────────────────────────────────────────── */
+  #empty-state {
+    text-align: center;
+    color: #aaa;
+    font-size: .9rem;
+    padding: 1rem 0;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    header { padding: .75rem 1rem; }
+    main   { padding: 0 .5rem; }
+    .filter-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Logi Report Logs Parser</h1>
+    <p>Upload one or more Logi Report log files to visualize and export an interactive report</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Step 1: Upload -->
+  <div class="card">
+    <h2>1 — Upload log files</h2>
+    <div id="drop-zone" role="button" aria-label="Drop log files or click to browse" tabindex="0">
+      <div class="icon">📂</div>
+      <p>Drag &amp; drop log files here, or click to browse</p>
+      <small>Supported: .log, .txt — multiple files accepted</small>
+    </div>
+    <input type="file" id="file-input" multiple accept=".log,.txt,.out,.csv">
+    <ul id="file-list"></ul>
+    <div id="empty-state" style="display:none">No files uploaded yet.</div>
+
+    <div id="status">
+      <div class="spinner"></div>
+      <span id="status-text">Uploading…</span>
+    </div>
+    <div id="upload-alert"></div>
+  </div>
+
+  <!-- Step 2: Filter -->
+  <div class="card" id="filter-card" style="display:none">
+    <h2>2 — Filter by time (optional)</h2>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="time-from">From</label>
+        <input type="datetime-local" id="time-from" step="1">
+      </div>
+      <div class="filter-group">
+        <label for="time-to">To</label>
+        <input type="datetime-local" id="time-to" step="1">
+      </div>
+      <div>
+        <button class="btn btn-secondary" id="btn-clear-filter">Clear filter</button>
+      </div>
+    </div>
+    <p class="time-hint">Leave blank to include all timestamps.</p>
+  </div>
+
+  <!-- Step 3: Export -->
+  <div class="card" id="export-card" style="display:none">
+    <h2>3 — Export report</h2>
+    <p style="font-size:.875rem;color:#555;margin-bottom:.75rem">
+      Select which files to include in the report, then click Export.
+      The output is a self-contained HTML file with interactive Plotly charts.
+    </p>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-export" disabled>
+        ⬇ Export Report
+      </button>
+      <button class="btn btn-secondary" id="btn-select-all">Select all</button>
+      <button class="btn btn-secondary" id="btn-select-none">Deselect all</button>
+    </div>
+    <div id="export-status">
+      <div id="export-spinner" style="display:none; margin-top:.6rem">
+        <div class="spinner" style="display:inline-block"></div>
+        <span style="font-size:.875rem;color:#555;margin-left:.5rem">Generating report…</span>
+      </div>
+      <div id="export-alert"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let sessionId = null;
+  // [{filename, log_type, row_count, time_min, time_max, has_data, checked}]
+  let uploadedFiles = [];
+
+  // ── DOM refs ───────────────────────────────────────────────
+  const dropZone     = document.getElementById('drop-zone');
+  const fileInput    = document.getElementById('file-input');
+  const fileList     = document.getElementById('file-list');
+  const emptyState   = document.getElementById('empty-state');
+  const statusEl     = document.getElementById('status');
+  const statusText   = document.getElementById('status-text');
+  const uploadAlert  = document.getElementById('upload-alert');
+  const filterCard   = document.getElementById('filter-card');
+  const exportCard   = document.getElementById('export-card');
+  const timeFrom     = document.getElementById('time-from');
+  const timeTo       = document.getElementById('time-to');
+  const btnExport    = document.getElementById('btn-export');
+  const btnSelectAll = document.getElementById('btn-select-all');
+  const btnSelectNone= document.getElementById('btn-select-none');
+  const btnClearFilter = document.getElementById('btn-clear-filter');
+  const exportSpinner = document.getElementById('export-spinner');
+  const exportAlert  = document.getElementById('export-alert');
+
+  // ── Drag & drop ────────────────────────────────────────────
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    handleFiles(Array.from(e.dataTransfer.files));
+  });
+
+  fileInput.addEventListener('change', () => {
+    handleFiles(Array.from(fileInput.files));
+    fileInput.value = '';
+  });
+
+  // ── Upload ─────────────────────────────────────────────────
+  async function handleFiles(files) {
+    if (!files.length) return;
+    setStatus(true, 'Uploading…');
+    clearAlert(uploadAlert);
+
+    const form = new FormData();
+    files.forEach(f => form.append('files', f));
+
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
+      sessionId = data.session_id;
+      // Merge into uploadedFiles (avoid duplicates by filename)
+      for (const f of data.files) {
+        const existing = uploadedFiles.findIndex(u => u.filename === f.filename);
+        if (existing >= 0) uploadedFiles[existing] = { ...f, checked: true };
+        else uploadedFiles.push({ ...f, checked: true });
+      }
+      renderFileList();
+      filterCard.style.display = 'block';
+      exportCard.style.display = 'block';
+      updateExportButton();
+
+      // Pre-populate time range from the earliest/latest timestamps across all files
+      populateTimeRange();
+    } catch (err) {
+      showAlert(uploadAlert, 'error', `Upload failed: ${err.message}`);
+    } finally {
+      setStatus(false);
+    }
+  }
+
+  // ── File list rendering ─────────────────────────────────────
+  function renderFileList() {
+    fileList.innerHTML = '';
+    if (uploadedFiles.length === 0) {
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const f = uploadedFiles[i];
+      const li = document.createElement('li');
+      li.className = 'file-item';
+      li.innerHTML = `
+        <input type="checkbox" id="chk-${i}" ${f.checked ? 'checked' : ''} data-idx="${i}">
+        <label for="chk-${i}" class="fname" title="${esc(f.filename)}">${esc(f.filename)}</label>
+        <span class="badge">${esc(f.log_type)}</span>
+        <span class="meta">${f.row_count.toLocaleString()} rows</span>
+        ${f.time_min ? `<span class="meta">${shortTs(f.time_min)} → ${shortTs(f.time_max)}</span>` : ''}
+        <button class="remove-btn" data-idx="${i}" title="Remove" aria-label="Remove ${esc(f.filename)}">✕</button>
+      `;
+      fileList.appendChild(li);
+    }
+
+    fileList.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        uploadedFiles[+cb.dataset.idx].checked = cb.checked;
+        updateExportButton();
+      });
+    });
+    fileList.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        uploadedFiles.splice(+btn.dataset.idx, 1);
+        renderFileList();
+        updateExportButton();
+      });
+    });
+  }
+
+  function populateTimeRange() {
+    const timestamps = uploadedFiles.flatMap(f => [f.time_min, f.time_max]).filter(Boolean);
+    if (!timestamps.length) return;
+    const sorted = timestamps.map(t => new Date(t)).filter(d => !isNaN(d)).sort((a,b) => a-b);
+    if (sorted.length >= 2) {
+      if (!timeFrom.value) timeFrom.value = toLocalInput(sorted[0]);
+      if (!timeTo.value)   timeTo.value   = toLocalInput(sorted[sorted.length - 1]);
+    }
+  }
+
+  // ── Export ─────────────────────────────────────────────────
+  btnExport.addEventListener('click', async () => {
+    const selected = uploadedFiles.filter(f => f.checked).map(f => f.filename);
+    if (!selected.length) return;
+
+    exportSpinner.style.display = 'block';
+    clearAlert(exportAlert);
+    btnExport.disabled = true;
+
+    const form = new FormData();
+    form.append('session_id', sessionId);
+    selected.forEach(n => form.append('selected_files', n));
+    if (timeFrom.value) form.append('time_from', timeFrom.value.replace('T', ' '));
+    if (timeTo.value)   form.append('time_to',   timeTo.value.replace('T', ' '));
+
+    try {
+      const res = await fetch('/export', { method: 'POST', body: form });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `logi_report_${timestamp()}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showAlert(exportAlert, 'success', 'Report exported successfully.');
+    } catch (err) {
+      showAlert(exportAlert, 'error', `Export failed: ${err.message}`);
+    } finally {
+      exportSpinner.style.display = 'none';
+      btnExport.disabled = false;
+    }
+  });
+
+  btnSelectAll.addEventListener('click', () => {
+    uploadedFiles.forEach(f => f.checked = true);
+    renderFileList();
+    updateExportButton();
+  });
+  btnSelectNone.addEventListener('click', () => {
+    uploadedFiles.forEach(f => f.checked = false);
+    renderFileList();
+    updateExportButton();
+  });
+  btnClearFilter.addEventListener('click', () => {
+    timeFrom.value = '';
+    timeTo.value   = '';
+  });
+
+  // ── Helpers ─────────────────────────────────────────────────
+  function updateExportButton() {
+    btnExport.disabled = !sessionId || !uploadedFiles.some(f => f.checked);
+  }
+
+  function setStatus(visible, text = '') {
+    statusEl.classList.toggle('visible', visible);
+    statusText.textContent = text;
+  }
+
+  function showAlert(el, type, msg) {
+    el.innerHTML = `<div class="alert alert-${type}">${esc(msg)}</div>`;
+  }
+  function clearAlert(el) { el.innerHTML = ''; }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function shortTs(ts) {
+    if (!ts) return '';
+    return ts.replace('T', ' ').substring(0, 16);
+  }
+
+  function toLocalInput(date) {
+    // datetime-local input wants YYYY-MM-DDTHH:MM
+    const pad = n => String(n).padStart(2,'0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function timestamp() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+</script>
+</body>
+</html>
