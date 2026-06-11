@@ -36,9 +36,14 @@ def stat_card(label: str, value: str) -> str:
     )
 
 
+def _section_id(title: str) -> str:
+    return "sec-" + "".join(c if c.isalnum() else "-" for c in title.lower()).strip("-")
+
+
 def section_wrap(title: str, badge: str, body: str) -> str:
+    sid = _section_id(title)
     return (
-        f'<div class="section">'
+        f'<div class="section" id="{sid}">'
         f'<h2>{title} <span class="badge">{badge}</span></h2>'
         f'{body}'
         f'</div>'

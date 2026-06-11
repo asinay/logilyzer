@@ -113,6 +113,10 @@ def _unsupported_section(lf: LogFile) -> str:
     )
 
 
+def _section_id(filename: str) -> str:
+    return "sec-" + "".join(c if c.isalnum() else "-" for c in filename.lower()).strip("-")
+
+
 def _build_report(
     log_files: list[LogFile],
     sections_html: list[str],
@@ -121,9 +125,24 @@ def _build_report(
 ) -> str:
     time_note = ""
     if time_from or time_to:
-        time_note = f"<p class='time-filter'>Time filter: {time_from or '—'} → {time_to or '—'}</p>"
+        time_note = (
+            f'<div class="time-filter">'
+            f'&#128336; Time filter: <strong>{time_from or "—"}</strong> → <strong>{time_to or "—"}</strong>'
+            f'</div>'
+        )
 
-    filenames = ", ".join(lf.filename for lf in log_files)
+    # Build sidebar nav items
+    nav_items = ""
+    for lf in log_files:
+        sid = _section_id(lf.filename)
+        nav_items += (
+            f'<a class="nav-item" href="#{sid}" onclick="activate(this)">'
+            f'<span class="nav-dot"></span>'
+            f'<span class="nav-label">{lf.filename}</span>'
+            f'<span class="nav-badge">{lf.log_type}</span>'
+            f'</a>\n'
+        )
+
     sections = "\n".join(sections_html)
 
     return f"""<!DOCTYPE html>
@@ -132,32 +151,183 @@ def _build_report(
 <meta charset="utf-8">
 <title>Logi Report Analysis</title>
 <style>
-  body {{ font-family: sans-serif; margin: 0; background: #f5f5f5; color: #222; }}
-  .report-header {{ background: #1a3a5c; color: #fff; padding: 1.5rem 2rem; }}
-  .report-header h1 {{ margin: 0 0 .25rem; font-size: 1.4rem; }}
-  .report-header p {{ margin: 0; font-size: .85rem; opacity: .8; }}
-  .time-filter {{ background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;
-                  padding: .4rem .8rem; margin: 1rem 2rem; font-size: .85rem; }}
-  .section {{ background: #fff; margin: 1rem 2rem; border-radius: 6px;
-              box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 1.5rem; }}
-  .section h2 {{ margin-top: 0; font-size: 1.1rem; border-bottom: 2px solid #1a3a5c;
-                 padding-bottom: .5rem; }}
-  .badge {{ background: #e8eef4; color: #1a3a5c; border-radius: 3px;
-            padding: 2px 6px; font-size: .75rem; font-weight: normal; }}
-  .section.error h2 {{ border-color: #dc3545; }}
+  *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+  body {{
+    font-family: system-ui, sans-serif;
+    background: #f0f4f8;
+    color: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }}
+
+  /* ── Header ── */
+  .report-header {{
+    background: #1a3a5c;
+    color: #fff;
+    padding: .9rem 1.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+  }}
+  .report-header h1 {{ font-size: 1.15rem; font-weight: 600; white-space: nowrap; }}
+  .report-header p  {{ font-size: .8rem; opacity: .75; }}
+
+  /* ── Layout ── */
+  .layout {{
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }}
+
+  /* ── Sidebar ── */
+  .sidebar {{
+    width: 220px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #dde3ea;
+    overflow-y: auto;
+    padding: .75rem 0;
+  }}
+  .sidebar-title {{
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #94a3b8;
+    padding: .4rem 1rem .6rem;
+  }}
+  .nav-item {{
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .45rem 1rem;
+    font-size: .8rem;
+    color: #334155;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .1s;
+    border-right: 3px solid transparent;
+  }}
+  .nav-item:hover {{ background: #f1f5f9; color: #1a3a5c; }}
+  .nav-item.active {{
+    background: #e8f0f8;
+    color: #1a3a5c;
+    font-weight: 600;
+    border-right-color: #1a3a5c;
+  }}
+  .nav-dot {{
+    width: 6px; height: 6px;
+    background: #1a3a5c;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }}
+  .nav-label {{ flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+  .nav-badge {{
+    font-size: .65rem;
+    background: #e8eef4;
+    color: #1a3a5c;
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }}
+
+  /* ── Main content ── */
+  .main {{
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0 2rem;
+  }}
+  .time-filter {{
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: .5rem 1.25rem;
+    font-size: .82rem;
+    margin: 1rem 1.5rem 0;
+    border-radius: 0 4px 4px 0;
+  }}
+  .section {{
+    background: #fff;
+    margin: 1rem 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    padding: 1.25rem 1.5rem;
+    scroll-margin-top: 1rem;
+  }}
+  .section h2 {{
+    margin-top: 0;
+    font-size: 1rem;
+    border-bottom: 2px solid #1a3a5c;
+    padding-bottom: .45rem;
+    margin-bottom: 1rem;
+  }}
+  .section.error h2   {{ border-color: #dc3545; }}
   .section.unsupported {{ opacity: .7; }}
-  .stat-cards {{ display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }}
-  .stat-card {{ background: #f0f4f8; border-radius: 4px; padding: .6rem 1rem; min-width: 140px; }}
-  .stat-card .label {{ font-size: .75rem; color: #666; }}
-  .stat-card .value {{ font-size: 1.2rem; font-weight: 600; color: #1a3a5c; }}
+  .badge {{
+    background: #e8eef4; color: #1a3a5c;
+    border-radius: 3px; padding: 2px 6px;
+    font-size: .72rem; font-weight: normal;
+  }}
+  .stat-cards {{ display: flex; flex-wrap: wrap; gap: .65rem; margin-bottom: 1rem; }}
+  .stat-card  {{
+    background: #f0f4f8; border-radius: 4px;
+    padding: .55rem .9rem; min-width: 120px;
+  }}
+  .stat-card .label {{ font-size: .72rem; color: #64748b; }}
+  .stat-card .value {{ font-size: 1.15rem; font-weight: 600; color: #1a3a5c; }}
+  .no-data {{ color: #94a3b8; font-size: .875rem; }}
+  table {{ width: 100%; border-collapse: collapse; }}
+  th, td {{ padding: .3rem .5rem; }}
+  thead tr {{ border-bottom: 2px solid #dee2e6; }}
 </style>
 </head>
 <body>
+
 <div class="report-header">
   <h1>Logi Report — Log Analysis</h1>
-  <p>Files: {filenames}</p>
+  <p>{len(log_files)} file{"s" if len(log_files) != 1 else ""} analysed</p>
 </div>
-{time_note}
-{sections}
+
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="sidebar-title">Log Files</div>
+    {nav_items}
+  </nav>
+
+  <div class="main" id="main">
+    {time_note}
+    {sections}
+  </div>
+
+</div>
+
+<script>
+  function activate(el) {{
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }}
+
+  // Scroll-spy: highlight nav item whose section is nearest the top
+  const main = document.getElementById('main');
+  const navItems = Array.from(document.querySelectorAll('.nav-item'));
+
+  function onScroll() {{
+    const sections = navItems.map(a => document.querySelector(a.getAttribute('href')));
+    const scrollTop = main.scrollTop;
+    let active = 0;
+    sections.forEach((sec, i) => {{
+      if (sec && sec.offsetTop - main.offsetTop <= scrollTop + 80) active = i;
+    }});
+    navItems.forEach((n, i) => n.classList.toggle('active', i === active));
+  }}
+
+  main.addEventListener('scroll', onScroll, {{ passive: true }});
+  onScroll();
+</script>
 </body>
 </html>"""
