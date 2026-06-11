@@ -9,6 +9,11 @@ Always use `/caveman` mode (full intensity) in this repo.
 ## Commands
 
 ```bash
+# Create and activate venv (one-time)
+python -m venv .venv
+.venv\Scripts\activate   # Windows
+source .venv/bin/activate  # macOS/Linux
+
 # Install deps
 pip install -r requirements.txt
 

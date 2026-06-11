@@ -26,12 +26,23 @@ Upload multiple log files at once → get interactive Plotly charts per log type
 ## Setup
 
 ```bash
+# Create and activate virtual environment
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
 ## Run
 
 ```bash
+# Activate venv first (if not already active), then:
 uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
