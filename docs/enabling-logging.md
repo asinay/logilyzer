@@ -1,16 +1,16 @@
 # Enabling Logi Report Logging
 
-> Official reference: [Configuring Logi Report Logging System](https://devnet.logianalytics.com/hc/en-us/articles/4405690489111-Configuring-Logi-Report-Logging-System)
+> Official reference: [Configuring Report Logging System](https://docs-report.zendesk.com/hc/en-us/articles/28891504465549-Configuring-Report-Logging-System)
 
 ---
 
 ## Log file locations
 
-| Setting | Default |
-|---------|---------|
-| Log directory | `<install_root>\logs` |
-| Config file | `<install_root>\bin\LogConfig.properties` |
-| UI config | Server Console → **Administration → Configuration → Log** |
+| Item | Default |
+|------|---------|
+| Log output directory | `<install_root>\logs` |
+| Config file (advanced) | `<install_root>\bin\LogConfig.properties` |
+| UI configuration | Server Console → **Administration → Configuration → Log** |
 
 Log files are named after their category: `Engine.log`, `Error.log`, `Access.log`, etc.
 
@@ -18,112 +18,115 @@ Log files are named after their category: `Engine.log`, `Error.log`, `Access.log
 
 ## Log types
 
-| File | What it captures |
-|------|-----------------|
-| `Engine.log` | Report execution, creation, export |
-| `DHTML.log` | Interactive viewer (DHTML) client–server actions |
-| `Access.log` | User access, HTTP requests, task scheduling |
-| `Error.log` | Errors across all categories |
-| `Event.log` | Server lifecycle (startup, shutdown) |
-| `Debug.log` | SQL statements, detailed debug traces |
-| `Performance.log` | Report and export timing analysis |
-| `Dump.log` | Task queue lifecycle (submit, run, finish) |
-| `Manage.log` | Server Console and `server.properties` changes |
-| `PageReport.log` | Page report modifications, Ad Hoc, Studio |
-
----
-
-## Log levels
-
-From least to most verbose:
-
-| Level | Captures |
-|-------|---------|
-| `OFF` | Nothing |
-| `FATAL` | Severe errors causing abort |
-| `ERROR` | Errors that allow continued operation |
-| `WARN` | Potentially harmful situations |
-| `OUTLINE` | Program workflow outline |
-| `INFO` | Application progress, important variables |
-| `TRIVIAL` | Fine-grained tracing |
-| `ALL` | Everything |
-
-**Recommended starting level:** `INFO` for production, `DEBUG` or `ALL` when troubleshooting.
+| Log type | File | What it captures |
+|----------|------|-----------------|
+| **Engine** | `Engine.log` | Events related to running, creating, and exporting reports |
+| **Page Report** | `PageReport.log` | Modifying and saving page reports, Ad Hoc and analysis features in Page Report Studio |
+| **Access** | `Access.log` | Which users accessed report running and task scheduling services |
+| **Manage** | `Manage.log` | Modifications to settings in Server Console or `server.properties` |
+| **Error** | `Error.log` | Errors in any of the log categories |
+| **Event** | `Event.log` | Server lifecycle events such as start time and stop time |
+| **Debug** | `Debug.log` | Events needed for debugging, e.g. SQL statements used to query the database |
+| **Performance** | `Performance.log` | Performance analysis of reports and export operations |
+| **Dump** | `Dump.log` | Task lifecycle events: when a task was submitted, when it ran, when the Engine initiated and stopped |
 
 ---
 
 ## Configuring via Server Console (UI)
 
-1. Open **Server Console** → **Administration** → **Configuration** → **Log**
-2. Select the log category (Engine, Error, Access, etc.)
-3. Set the **Log Level** and **Appender** (RollingFile recommended)
-4. Set **File Name** — use an absolute path if you want logs outside the install directory (e.g. `E:\logs\Engine.log`)
-5. Save and restart the server
+1. On the system toolbar of the Server Console, navigate to **Administration → Configuration → Log**
+2. From the **Log Type** drop-down, select the log category to configure
+3. From the **Log Level** drop-down, select the desired level (see table below)
+4. From the **Additivity** drop-down, select **True** if you want child loggers to inherit all appenders from ancestor loggers
+5. Select an **Appender** type and configure it (see appender details below)
+6. Click **Save**
 
 ---
 
-## Configuring via LogConfig.properties
+## Log levels
 
-Edit `<install_root>\bin\LogConfig.properties` directly for scripted or bulk changes.
+| Level | What is logged |
+|-------|---------------|
+| `OFF` | Nothing (disables the log) |
+| `FATAL` | Severe errors that cause the application to abort |
+| `ERROR` | Errors that allow continued operation |
+| `WARN` | Potentially harmful situations |
+| `OUTLINE` | Program workflow outline |
+| `INFO` | Application progress and important variable values |
+| `TRIVIAL` | Fine-grained tracing events |
+| `ALL` | Everything |
 
-### Enable a log category at INFO level (RollingFile)
-
-```properties
-# Engine log
-log4j.logger.Engine=INFO, EngineAppender
-log4j.appender.EngineAppender=org.apache.log4j.RollingFileAppender
-log4j.appender.EngineAppender.File=<install_root>/logs/Engine.log
-log4j.appender.EngineAppender.MaxFileSize=50MB
-log4j.appender.EngineAppender.MaxBackupIndex=5
-log4j.appender.EngineAppender.layout=org.apache.log4j.PatternLayout
-log4j.appender.EngineAppender.layout.ConversionPattern=%m [%t][%p][%d{{dd MM yyyy HH:mm:ss,SSS}}]%n
-```
-
-Replace `Engine` / `EngineAppender` / `Engine.log` with the relevant category name for other log types.
-
-> **Note:** Avoid `%C`, `%F`, `%L`, `%M` in the pattern — they use reflection and hurt performance.
-
-### Daily rotation instead of size-based
-
-```properties
-log4j.appender.EngineAppender=org.apache.log4j.DailyRollingFileAppender
-log4j.appender.EngineAppender.DatePattern='.'yyyy-MM-dd
-```
+**Recommended:** `INFO` for production. Use `DEBUG` or `ALL` only when actively troubleshooting — these produce large files quickly.
 
 ---
 
-## Rotation and retention
+## Appender types
 
-| Property | Purpose |
-|----------|---------|
-| `MaxFileSize` | Max size before rotation (e.g. `50MB`, `100MB`) |
-| `MaxBackupIndex` | Number of rotated files to keep (e.g. `5` keeps last 5) |
-| `DatePattern` | For DailyRollingFile — controls rotation frequency |
+### RollingFile *(default — recommended)*
 
----
+Rotates to a new file when the file exceeds a maximum size.
 
-## Command-line overrides (startup flags)
+| Setting | Description |
+|---------|-------------|
+| **Layout Type** | `Pattern`, `HTML`, `XML`, `TTCC`, or `Simple` |
+| **Pattern Conversion** | Conversion pattern (Pattern layout only — see note below) |
+| **File Name** | Path to the log file. Default: `<install_root>\logs\<Type>.log`. Use an absolute path to save elsewhere, e.g. `E:/logs/Engine.log` |
+| **Append** | `False` to replace the file contents on each server start |
+| **Buffered IO** | `True` to buffer log I/O |
+| **Maximum File Size** | File size that triggers rotation, e.g. `50MB` |
+| **Maximum Backup Index** | Number of rotated files to retain |
 
-These flags override `LogConfig.properties` at server start:
+> **Performance note:** Avoid conversion characters `%C`, `%F`, `%L`, and `%M` in Pattern layouts — they use reflection to look up caller information and significantly slow down logging.
 
-| Flag | Effect |
-|------|--------|
-| `-vDebug` | Engine → file at `INFO` level |
-| `-vError` | Engine → file at `ERROR` level |
-| `-logall` | All loggers → `INFO` level |
-| `-log[:fileName]` | Engine → specified file at `DEBUG` level |
+### File
 
----
+Same settings as RollingFile, without the size-based rotation.
 
-## Organisation-specific logging
+### DailyRollingFile
 
-If Organisations are enabled, each organisation gets its own log subfolder under `<install_root>\logs`. Enable the **Additivity** option in the log config to also propagate entries to the root appenders.
+Same settings as FileAppender, plus:
+
+| Setting | Description |
+|---------|-------------|
+| **Date Pattern** | Pattern controlling when the daily rolling file is created, e.g. `'.'yyyy-MM-dd` |
+
+### Socket
+
+Outputs to a remote log server. No layout required.
+
+| Setting | Description |
+|---------|-------------|
+| **Remote Host** | Hostname of the Socket Server |
+| **Port** | Port the Socket Server listens on |
+| **Delay** | Timeout interval for socket connection attempts |
+| **Location Information** | `True` to include log location in the socket stream |
+
+### Syslog
+
+Outputs to a remote syslog daemon.
+
+| Setting | Description |
+|---------|-------------|
+| **Layout Type** | `Pattern`, `HTML`, `XML`, `TTCC`, or `Simple` |
+| **Syslog Host** | Hostname of the Syslog server |
+| **Facility** | Syslog facility name |
+| **Facility Printing** | `True` to include facility information in output |
+
+### Console
+
+Outputs to the Java standard stream.
+
+| Setting | Description |
+|---------|-------------|
+| **Layout Type** | `Pattern`, `HTML`, `XML`, `TTCC`, or `Simple` |
+| **Target** | `System.out` (standard output) or `System.err` (standard error) |
 
 ---
 
 ## Tips for collecting logs for this tool
 
-- Enable at least **Engine**, **Error**, **DHTML**, **Access**, and **Dump** at `INFO` or higher
+- Enable at least **Engine**, **Error**, **DHTML**, **Access**, and **Dump** at `INFO` level
 - Use **RollingFile** with `MaxFileSize=50MB` and `MaxBackupIndex=3` to avoid disk pressure
-- Collect logs during a representative workload period (a few minutes to hours)
+- Collect logs during a representative workload period (minutes to hours depending on traffic)
 - Upload all relevant `.log` files together — this tool correlates events across files by timestamp
+- If Organisations are enabled, each organisation has its own log subfolder under `<install_root>\logs` — collect from all relevant subfolders
