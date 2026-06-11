@@ -289,6 +289,53 @@ def _build_report(
   th, td {{ padding: .3rem .5rem; }}
   thead tr {{ border-bottom: 2px solid #dee2e6; }}
 
+  /* ── Sidebar filter controls ── */
+  .sidebar-filter-block {{
+    padding: .6rem .75rem;
+    border-bottom: 1px solid #dde3ea;
+    margin-bottom: .4rem;
+  }}
+  .sidebar-filter-block label {{
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #94a3b8;
+    display: block;
+    margin-bottom: .35rem;
+  }}
+  #global-search {{
+    width: 100%;
+    padding: .35rem .55rem;
+    border: 1px solid #ccd3dc;
+    border-radius: 4px;
+    font-size: .8rem;
+    outline: none;
+  }}
+  #global-search:focus {{ border-color: #1a3a5c; }}
+  .level-toggles {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    margin-top: .5rem;
+  }}
+  .lvl-btn {{
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    opacity: .4;
+    transition: opacity .15s;
+  }}
+  .lvl-btn.on {{ opacity: 1; }}
+  .lvl-btn[data-lvl="ERROR"] {{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; }}
+  .lvl-btn[data-lvl="WARN"]  {{ background:#fff3e0; color:#b45309; border-color:#fcd34d; }}
+  .lvl-btn[data-lvl="INFO"]  {{ background:#dbeafe; color:#1e40af; border-color:#93c5fd; }}
+  .lvl-btn[data-lvl="DEBUG"] {{ background:#f1f5f9; color:#475569; border-color:#cbd5e1; }}
+  .lvl-btn[data-lvl="TRACE"] {{ background:#f1f5f9; color:#94a3b8; border-color:#e2e8f0; }}
+
   /* ── Raw log block ── */
   .raw-log {{
     margin-top: 1.25rem;
@@ -317,13 +364,33 @@ def _build_report(
   }}
   .raw-log[open] summary::before {{ transform: rotate(90deg); }}
   .raw-count {{
-    background: #e8eef4;
-    color: #1a3a5c;
-    border-radius: 3px;
-    padding: 1px 6px;
-    font-size: .72rem;
-    font-weight: normal;
+    background: #e8eef4; color: #1a3a5c;
+    border-radius: 3px; padding: 1px 6px;
+    font-size: .72rem; font-weight: normal;
   }}
+  .raw-toolbar {{
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .5rem .75rem;
+    background: #f6f8fb;
+    border-bottom: 1px solid #dde3ea;
+    flex-wrap: wrap;
+  }}
+  .raw-thread-select {{
+    padding: .25rem .45rem;
+    border: 1px solid #ccd3dc;
+    border-radius: 4px;
+    font-size: .78rem;
+    outline: none;
+  }}
+  .raw-match-count {{
+    font-size: .72rem;
+    color: #64748b;
+    margin-left: auto;
+  }}
+  .raw-note {{ font-size:.75rem; color:#888; padding:.3rem .75rem; }}
+  .raw-scroll {{ overflow-x:auto; max-height:420px; overflow-y:auto; }}
   .raw-table {{
     width: 100%;
     border-collapse: collapse;
@@ -331,25 +398,25 @@ def _build_report(
     font-family: monospace;
   }}
   .raw-table thead th {{
-    position: sticky;
-    top: 0;
+    position: sticky; top: 0;
     background: #f0f4f8;
     text-align: left;
     padding: .3rem .6rem;
     border-bottom: 1px solid #dde3ea;
     font-family: system-ui, sans-serif;
-    font-size: .75rem;
-    color: #475569;
-    white-space: nowrap;
+    font-size: .75rem; color: #475569; white-space: nowrap;
   }}
   .raw-table tbody tr:nth-child(even) {{ background: #f9fafb; }}
   .raw-table tbody tr:hover {{ background: #e8f0f8; }}
+  .raw-table tbody tr.hidden {{ display: none; }}
   .raw-table td {{
     padding: .25rem .6rem;
     vertical-align: top;
     border-bottom: 1px solid #f1f5f9;
     max-width: 700px;
   }}
+  .raw-table td span {{ white-space: pre-wrap; font-family: monospace; font-size: .75rem; }}
+  mark {{ background: #fef08a; border-radius: 2px; padding: 0 1px; }}
 </style>
 </head>
 <body>
@@ -362,6 +429,17 @@ def _build_report(
 <div class="layout">
 
   <nav class="sidebar">
+    <div class="sidebar-filter-block">
+      <label for="global-search">Search</label>
+      <input type="search" id="global-search" placeholder="Filter log rows…" oninput="applyFilters()">
+      <div class="level-toggles">
+        <button class="lvl-btn on" data-lvl="ERROR" onclick="toggleLevel(this)">ERROR</button>
+        <button class="lvl-btn on" data-lvl="WARN"  onclick="toggleLevel(this)">WARN</button>
+        <button class="lvl-btn on" data-lvl="INFO"  onclick="toggleLevel(this)">INFO</button>
+        <button class="lvl-btn on" data-lvl="DEBUG" onclick="toggleLevel(this)">DEBUG</button>
+        <button class="lvl-btn on" data-lvl="TRACE" onclick="toggleLevel(this)">TRACE</button>
+      </div>
+    </div>
     <div class="sidebar-title">Log Files</div>
     {nav_items}
   </nav>
@@ -374,27 +452,87 @@ def _build_report(
 </div>
 
 <script>
+  // ── Nav / scroll-spy ──────────────────────────────────────
   function activate(el) {{
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     el.classList.add('active');
   }}
 
-  // Scroll-spy: highlight nav item whose section is nearest the top
   const main = document.getElementById('main');
   const navItems = Array.from(document.querySelectorAll('.nav-item'));
 
   function onScroll() {{
-    const sections = navItems.map(a => document.querySelector(a.getAttribute('href')));
     const scrollTop = main.scrollTop;
     let active = 0;
-    sections.forEach((sec, i) => {{
+    navItems.forEach((a, i) => {{
+      const sec = document.querySelector(a.getAttribute('href'));
       if (sec && sec.offsetTop - main.offsetTop <= scrollTop + 80) active = i;
     }});
     navItems.forEach((n, i) => n.classList.toggle('active', i === active));
   }}
-
   main.addEventListener('scroll', onScroll, {{ passive: true }});
   onScroll();
+
+  // ── Filtering ─────────────────────────────────────────────
+  function toggleLevel(btn) {{
+    btn.classList.toggle('on');
+    applyFilters();
+  }}
+
+  function applyFilters() {{
+    const needle   = (document.getElementById('global-search').value || '').toLowerCase();
+    const onLevels = new Set(
+      Array.from(document.querySelectorAll('.lvl-btn.on')).map(b => b.dataset.lvl)
+    );
+
+    document.querySelectorAll('.raw-table').forEach(tbl => {{
+      const tableId   = tbl.id;
+      const sel       = tbl.closest('.raw-log').querySelector('.raw-thread-select');
+      const threadFilter = sel ? sel.value : '';
+      let visible = 0;
+
+      tbl.querySelectorAll('tbody tr').forEach(tr => {{
+        const level  = (tr.dataset.level  || '').toUpperCase();
+        const thread = (tr.dataset.thread || '');
+        const text   = tr.textContent.toLowerCase();
+
+        const levelOk  = !level || onLevels.has(level) || onLevels.size === 0;
+        const threadOk = !threadFilter || thread === threadFilter;
+        const textOk   = !needle || text.includes(needle);
+
+        const show = levelOk && threadOk && textOk;
+        tr.classList.toggle('hidden', !show);
+        if (show) visible++;
+
+        // Highlight search match in message cell (last td)
+        if (needle && show) {{
+          const msgTd = tr.querySelector('td:last-child span');
+          if (msgTd) {{
+            const raw = msgTd.textContent;
+            const idx = raw.toLowerCase().indexOf(needle);
+            if (idx >= 0) {{
+              msgTd.innerHTML =
+                _esc(raw.slice(0, idx)) +
+                '<mark>' + _esc(raw.slice(idx, idx + needle.length)) + '</mark>' +
+                _esc(raw.slice(idx + needle.length));
+            }} else {{
+              msgTd.textContent = raw;
+            }}
+          }}
+        }} else {{
+          const msgTd = tr.querySelector('td:last-child span');
+          if (msgTd && msgTd.querySelector('mark')) msgTd.textContent = msgTd.textContent;
+        }}
+      }});
+
+      const countEl = document.getElementById(tableId + '-count');
+      if (countEl) countEl.textContent = visible + ' rows';
+    }});
+  }}
+
+  function _esc(s) {{
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }}
 </script>
 </body>
 </html>"""

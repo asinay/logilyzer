@@ -58,10 +58,16 @@ def no_data_section(filename: str, log_type: str, reason: str = "") -> str:
     )
 
 
+_raw_table_counter = [0]
+
+
 def raw_log_block(df: pd.DataFrame, max_rows: int = 2000) -> str:
-    """Collapsible raw-log table appended to every section."""
+    """Collapsible raw-log table with per-table thread filter."""
     if df is None or df.empty:
         return ""
+
+    _raw_table_counter[0] += 1
+    table_id = f"raw-tbl-{_raw_table_counter[0]}"
 
     total = len(df)
     display = df.head(max_rows)
@@ -72,9 +78,21 @@ def raw_log_block(df: pd.DataFrame, max_rows: int = 2000) -> str:
     def _esc(s: str) -> str:
         return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+    # Unique threads for the local dropdown
+    threads = sorted(display["thread"].dropna().unique().tolist()) if "thread" in display.columns else []
+    thread_opts = '<option value="">All threads</option>' + "".join(
+        f'<option value="{_esc(t)}">{_esc(t)}</option>' for t in threads
+    )
+    thread_select = (
+        f'<select class="raw-thread-select" data-table="{table_id}" onchange="applyFilters()">'
+        f'{thread_opts}</select>'
+    ) if threads else ""
+
     header = "".join(f"<th>{c}</th>" for c in cols)
     rows_html = ""
     for _, row in display.iterrows():
+        lvl    = _esc(str(row["level"]))   if "level"  in cols and pd.notna(row.get("level"))  else ""
+        thread = _esc(str(row["thread"])) if "thread" in cols and pd.notna(row.get("thread")) else ""
         cells = ""
         for c in cols:
             val = row[c]
@@ -82,23 +100,26 @@ def raw_log_block(df: pd.DataFrame, max_rows: int = 2000) -> str:
                 val = str(val)[:19]
             elif c == "message":
                 val = _esc(str(val))[:600]
-                val = f'<span style="white-space:pre-wrap;font-family:monospace;font-size:.75rem">{val}</span>'
+                val = f'<span style="white-space:pre-wrap">{val}</span>'
             else:
                 val = _esc(str(val)) if pd.notna(val) else ""
             cells += f"<td>{val}</td>"
-        rows_html += f"<tr>{cells}</tr>"
+        rows_html += f'<tr data-level="{lvl}" data-thread="{thread}">{cells}</tr>'
 
     note = (
-        f'<p style="font-size:.75rem;color:#888;margin:.4rem 0">'
-        f'Showing first {max_rows:,} of {total:,} rows.</p>'
+        f'<p class="raw-note">Showing first {max_rows:,} of {total:,} rows.</p>'
     ) if truncated else ""
 
     return f"""
 <details class="raw-log">
   <summary>Raw log &nbsp;<span class="raw-count">{total:,} rows</span></summary>
+  <div class="raw-toolbar">
+    {thread_select}
+    <span class="raw-match-count" id="{table_id}-count"></span>
+  </div>
   {note}
-  <div style="overflow-x:auto;max-height:420px;overflow-y:auto;margin-top:.5rem">
-    <table class="raw-table">
+  <div class="raw-scroll">
+    <table class="raw-table" id="{table_id}">
       <thead><tr>{header}</tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
