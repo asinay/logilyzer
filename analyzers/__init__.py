@@ -1,9 +1,4 @@
-"""
-Analyzer registry.
-
-Each analyzer module exposes an async `analyze(lf, time_from, time_to) -> str`
-and a list of `LOG_TYPES` it handles.
-"""
+"""Analyzer registry."""
 
 from __future__ import annotations
 from typing import Optional, Protocol
@@ -22,15 +17,14 @@ class Analyzer(Protocol):
     ) -> str: ...
 
 
-# Import all analyzers so they register themselves
-from analyzers import performance, access, error, dump, engine, generic  # noqa: E402
+from analyzers import performance, access, error, dump, engine, dhtml, generic  # noqa: E402
 
-_REGISTRY: dict[str, "Analyzer"] = {}
+_REGISTRY: dict[str, object] = {}
 
-for _mod in (performance, access, error, dump, engine, generic):
+for _mod in (performance, access, error, dump, engine, dhtml, generic):
     for _lt in _mod.LOG_TYPES:
-        _REGISTRY[_lt] = _mod  # type: ignore[assignment]
+        _REGISTRY[_lt] = _mod
 
 
-def get_analyzer(log_type: str) -> Optional["Analyzer"]:
+def get_analyzer(log_type: str) -> Optional[object]:
     return _REGISTRY.get(log_type) or _REGISTRY.get("unknown")

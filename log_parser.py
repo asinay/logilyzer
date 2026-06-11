@@ -1,17 +1,14 @@
 """
-Log type detection and parsing for Logi Report log files.
+Parser for Logi Report log files.
 
-Logi Report log categories:
-  engine      - report execution and export events
-  page_report - page report / ad-hoc events
-  access      - user logins, task scheduling
-  manage      - server console / config changes
-  error       - error events across all categories
-  event       - server lifecycle (start / stop)
-  debug       - SQL statements, debug traces
-  performance - report/export timing
-  dump        - task lifecycle (submit, execute, finish)
-  unknown     - unrecognised format
+Log entry format (Logi Report TTCC variant):
+  <message text...possibly multi-line> [ThreadName][LEVEL][DD MM YYYY HH:MM:SS,mmm optional_tz]
+
+The [thread][level][timestamp] marker always appears at the END of each entry.
+Entries can span multiple lines.  Startup header blocks (between === lines) are skipped.
+
+Supported log types (detected from filename):
+  engine, page_report, access, manage, error, event, debug, dump, performance, dhtml, unknown
 """
 
 from __future__ import annotations
@@ -43,7 +40,7 @@ class LogFile:
         if self.df is not None and "timestamp" in self.df.columns and not self.df.empty:
             ts = self.df["timestamp"].dropna()
             if not ts.empty:
-                return str(ts.min())
+                return ts.min().isoformat(sep=" ", timespec="seconds")
         return None
 
     @property
@@ -51,7 +48,7 @@ class LogFile:
         if self.df is not None and "timestamp" in self.df.columns and not self.df.empty:
             ts = self.df["timestamp"].dropna()
             if not ts.empty:
-                return str(ts.max())
+                return ts.max().isoformat(sep=" ", timespec="seconds")
         return None
 
 
@@ -59,30 +56,18 @@ class LogFile:
 # Log type detection
 # ---------------------------------------------------------------------------
 
-# Maps filename substrings (lower-case) to log type
 _FILENAME_HINTS: list[tuple[str, str]] = [
     ("performance", "performance"),
     ("perf",        "performance"),
     ("access",      "access"),
     ("error",       "error"),
     ("engine",      "engine"),
+    ("dhtml",       "dhtml"),
     ("page",        "page_report"),
     ("manage",      "manage"),
     ("event",       "event"),
     ("debug",       "debug"),
     ("dump",        "dump"),
-]
-
-# Patterns in the first ~2 KB of file content
-_CONTENT_HINTS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\bReportExecutionTime\b", re.I),  "performance"),
-    (re.compile(r"\bExportTime\b", re.I),           "performance"),
-    (re.compile(r"\bUserLogin\b|\bUserLogout\b", re.I), "access"),
-    (re.compile(r"\bScheduleTask\b|\bRunTask\b", re.I), "access"),
-    (re.compile(r"\bERROR\b.*\bException\b"),        "error"),
-    (re.compile(r"\bServerStarted\b|\bServerStopped\b", re.I), "event"),
-    (re.compile(r"\bSELECT\b.*\bFROM\b"),           "debug"),
-    (re.compile(r"\bTaskSubmit\b|\bTaskFinish\b", re.I), "dump"),
 ]
 
 
@@ -91,81 +76,83 @@ def detect_log_type(filename: str, text: str) -> str:
     for hint, log_type in _FILENAME_HINTS:
         if hint in fname_lower:
             return log_type
-
-    sample = text[:4096]
-    for pattern, log_type in _CONTENT_HINTS:
-        if pattern.search(sample):
-            return log_type
-
     return "unknown"
 
 
 # ---------------------------------------------------------------------------
-# Parsing
+# Core parser
 # ---------------------------------------------------------------------------
 
-# Common Logi Report timestamp patterns (add more as real samples arrive)
-_TIMESTAMP_PATTERNS: list[str] = [
-    r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d+)?",   # 2024-03-15 14:23:01,234
-    r"\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}",              # 2024/03/15 14:23:01
-    r"\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}",              # 03/15/2024 14:23:01
-    r"\d{2}-\w{3}-\d{4} \d{2}:\d{2}:\d{2}",              # 15-Mar-2024 14:23:01
-]
-_TS_RE = re.compile("|".join(_TIMESTAMP_PATTERNS))
+# Matches the trailing marker: [ThreadName][LEVEL][DD MM YYYY HH:MM:SS,mmm optional_tz]
+# Captures: thread, level, timestamp_str
+_MARKER_RE = re.compile(
+    r"\[([^\]]+)\]"                      # [ThreadName]
+    r"\[(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)\]"  # [LEVEL]
+    r"\[(\d{2} \d{2} \d{4} \d{2}:\d{2}:\d{2},\d+)"  # [DD MM YYYY HH:MM:SS,mmm
+    r"(?:\s+[^\]]+)?"                    # optional timezone/offset
+    r"\]"                                # ]
+)
+
+# Startup section separator
+_SEP_RE = re.compile(r"^={4,}.+={4,}$")
 
 
 def parse_log_file(filename: str, log_type: str, text: str) -> LogFile:
-    """Parse log text into a LogFile with a DataFrame of structured rows."""
-    df = _try_structured_parse(log_type, text)
-    if df is None:
-        df = _generic_line_parse(text)
+    rows = _parse_entries(text)
+    if not rows:
+        return LogFile(filename=filename, log_type=log_type, raw_text=text,
+                       df=pd.DataFrame(columns=["timestamp", "thread", "level", "message"]))
+
+    df = pd.DataFrame(rows)
+    df["timestamp"] = pd.to_datetime(
+        df["timestamp_str"].str.replace(",", "."),
+        format="%d %m %Y %H:%M:%S.%f",
+        errors="coerce",
+    )
+    df.drop(columns=["timestamp_str"], inplace=True)
+    df.sort_values("timestamp", inplace=True, ignore_index=True)
     return LogFile(filename=filename, log_type=log_type, raw_text=text, df=df)
 
 
-def _try_structured_parse(log_type: str, text: str) -> Optional[pd.DataFrame]:
+def _parse_entries(text: str) -> list[dict]:
     """
-    Attempt log-type-specific parsing.
-    Returns a DataFrame or None if the format isn't recognised yet.
-    Each log-type parser should at minimum produce a 'timestamp' column
-    (as a pandas datetime) and a 'level' column where available.
+    Walk lines building up a message buffer.  When we encounter a marker,
+    flush the buffer + marker as one entry.
     """
-    # Placeholder: real parsers will be added once sample files are available.
-    # For now fall through to the generic parser for all types.
-    return None
+    rows: list[dict] = []
+    buf: list[str] = []
+    in_header = False
 
-
-def _generic_line_parse(text: str) -> pd.DataFrame:
-    """
-    Fallback: scan every line for a timestamp and capture the whole line.
-    Produces columns: timestamp, level, message
-    """
-    rows = []
     for line in text.splitlines():
-        line = line.rstrip()
-        if not line:
+        # Skip startup header blocks (between ===...=== separators)
+        if _SEP_RE.match(line.strip()):
+            in_header = True
+            buf.clear()
             continue
-        m = _TS_RE.search(line)
-        ts_str = m.group(0) if m else None
-        ts = _parse_timestamp(ts_str) if ts_str else pd.NaT
-        level = _extract_level(line)
-        rows.append({"timestamp": ts, "level": level, "message": line})
 
-    if not rows:
-        return pd.DataFrame(columns=["timestamp", "level", "message"])
+        if in_header:
+            # Header ends at the first marker line
+            m = _MARKER_RE.search(line)
+            if m and m.end() >= len(line.rstrip()) - 1:
+                in_header = False
+                # The header entry itself (usually empty message) — skip it
+                buf.clear()
+            continue
 
-    df = pd.DataFrame(rows)
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    return df
+        m = _MARKER_RE.search(line)
+        if m and m.end() >= len(line.rstrip()) - 1:
+            # This line ends with a marker — the message is everything before it
+            msg_on_this_line = line[:m.start()].strip()
+            buf.append(msg_on_this_line)
+            message = "\n".join(l for l in buf if l).strip()
+            rows.append({
+                "timestamp_str": m.group(3),
+                "thread": m.group(1),
+                "level": m.group(2),
+                "message": message,
+            })
+            buf = []
+        else:
+            buf.append(line.rstrip())
 
-
-def _parse_timestamp(ts_str: str) -> Optional[str]:
-    # Normalise common separators so pandas can parse them
-    ts_str = ts_str.replace(",", ".").replace("/", "-")
-    return ts_str
-
-
-def _extract_level(line: str) -> str:
-    for lvl in ("ERROR", "WARN", "INFO", "DEBUG", "FATAL", "TRACE"):
-        if lvl in line.upper():
-            return lvl
-    return "INFO"
+    return rows
