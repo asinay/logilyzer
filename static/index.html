@@ -25,6 +25,17 @@
   }
   header h1 { font-size: 1.3rem; font-weight: 600; }
   header p  { font-size: .8rem; opacity: .75; margin-top: 2px; }
+  .help-link {
+    margin-left: auto;
+    font-size: .8rem;
+    color: rgba(255,255,255,.8);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 4px;
+    padding: .3rem .75rem;
+    white-space: nowrap;
+  }
+  .help-link:hover { background: rgba(255,255,255,.12); color: #fff; }
 
   /* ── Main layout ─────────────────────────────────────────── */
   main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
@@ -193,6 +204,7 @@
     <h1>Logi Report Logs Parser</h1>
     <p>Upload one or more Logi Report log files to visualize and export an interactive report</p>
   </div>
+  <a class="help-link" href="/static/help.html" target="_blank">&#10067; How to enable logging</a>
 </header>
 
 <main>

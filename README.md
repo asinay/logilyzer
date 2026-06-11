@@ -59,3 +59,7 @@ Log type is detected automatically from the filename. Files with 0 parsed rows (
 ## Output
 
 The exported HTML is fully self-contained (Plotly loaded from CDN). Open it in any browser, no server needed. Reports are also saved locally to `outputs/`.
+
+## Enabling logging in Logi Report Server
+
+See **[docs/enabling-logging.md](docs/enabling-logging.md)** for a full guide on how to configure Logi Report to produce the log files this tool expects.

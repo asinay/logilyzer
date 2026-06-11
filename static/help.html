@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enabling Logi Report Logging</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f0f4f8; color: #1a1a2e; line-height: 1.6; }
+  header {
+    background: #1a3a5c; color: #fff;
+    padding: 1rem 2rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  header h1 { font-size: 1.2rem; font-weight: 600; }
+  header a  { margin-left: auto; color: rgba(255,255,255,.75); font-size: .85rem; text-decoration: none; }
+  header a:hover { color: #fff; }
+  main { max-width: 860px; margin: 2rem auto; padding: 0 1rem 3rem; }
+  h2 { font-size: 1.05rem; color: #1a3a5c; margin: 2rem 0 .6rem; border-bottom: 2px solid #d0dcea; padding-bottom: .35rem; }
+  h3 { font-size: .95rem; margin: 1.25rem 0 .4rem; color: #334155; }
+  p, li { font-size: .9rem; color: #334155; margin-bottom: .5rem; }
+  ul, ol { padding-left: 1.4rem; margin-bottom: .75rem; }
+  a { color: #1a3a5c; }
+  .card { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.09); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem; margin-bottom: .75rem; }
+  th { background: #f0f4f8; text-align: left; padding: .4rem .65rem; border-bottom: 2px solid #d0dcea; }
+  td { padding: .35rem .65rem; border-bottom: 1px solid #e9eef4; vertical-align: top; }
+  code, pre { font-family: monospace; background: #f0f4f8; border-radius: 3px; }
+  code { padding: 1px 5px; font-size: .85rem; }
+  pre { padding: 1rem; font-size: .82rem; overflow-x: auto; margin-bottom: .75rem; border: 1px solid #d0dcea; line-height: 1.5; }
+  .tip { background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 0 4px 4px 0; padding: .6rem 1rem; font-size: .875rem; margin-bottom: .75rem; }
+  .warn { background: #fff3e0; border-left: 4px solid #f59e0b; border-radius: 0 4px 4px 0; padding: .6rem 1rem; font-size: .875rem; margin-bottom: .75rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Enabling Logi Report Logging</h1>
+  <a href="/">&larr; Back to app</a>
+</header>
+
+<main>
+
+  <div class="card">
+    <p>This tool analyses log files produced by <strong>Logi Report Server</strong>. Before you can use it, logging must be enabled and configured in Logi Report. This page walks you through that setup.</p>
+    <p>Official reference: <a href="https://devnet.logianalytics.com/hc/en-us/articles/4405690489111-Configuring-Logi-Report-Logging-System" target="_blank">Configuring Logi Report Logging System ↗</a></p>
+  </div>
+
+  <h2>Log file locations</h2>
+  <div class="card">
+    <table>
+      <tr><th>Item</th><th>Default path</th></tr>
+      <tr><td>Log files output directory</td><td><code>&lt;install_root&gt;\logs</code></td></tr>
+      <tr><td>Logging config file</td><td><code>&lt;install_root&gt;\bin\LogConfig.properties</code></td></tr>
+      <tr><td>UI configuration</td><td>Server Console → <strong>Administration → Configuration → Log</strong></td></tr>
+    </table>
+    <p>You can set an absolute path for any log file (e.g. <code>E:\logs\Engine.log</code>) to store logs outside the install directory.</p>
+  </div>
+
+  <h2>Log types</h2>
+  <div class="card">
+    <table>
+      <tr><th>File</th><th>What it captures</th></tr>
+      <tr><td><code>Engine.log</code></td><td>Report execution, creation, export</td></tr>
+      <tr><td><code>DHTML.log</code></td><td>Interactive viewer client–server actions and round-trip costs</td></tr>
+      <tr><td><code>Access.log</code></td><td>User access, HTTP requests, task scheduling</td></tr>
+      <tr><td><code>Error.log</code></td><td>Errors across all categories</td></tr>
+      <tr><td><code>Event.log</code></td><td>Server lifecycle (startup, shutdown)</td></tr>
+      <tr><td><code>Debug.log</code></td><td>SQL statements, detailed debug traces</td></tr>
+      <tr><td><code>Performance.log</code></td><td>Report and export timing analysis</td></tr>
+      <tr><td><code>Dump.log</code></td><td>Task queue lifecycle (submit, run, finish)</td></tr>
+      <tr><td><code>Manage.log</code></td><td>Server Console and <code>server.properties</code> changes</td></tr>
+      <tr><td><code>PageReport.log</code></td><td>Page report modifications, Ad Hoc, Studio changes</td></tr>
+    </table>
+  </div>
+
+  <h2>Log levels</h2>
+  <div class="card">
+    <table>
+      <tr><th>Level</th><th>Captures</th></tr>
+      <tr><td><code>OFF</code></td><td>Nothing (disable the log)</td></tr>
+      <tr><td><code>FATAL</code></td><td>Severe errors causing server abort</td></tr>
+      <tr><td><code>ERROR</code></td><td>Errors that allow continued operation</td></tr>
+      <tr><td><code>WARN</code></td><td>Potentially harmful situations</td></tr>
+      <tr><td><code>OUTLINE</code></td><td>Program workflow outline</td></tr>
+      <tr><td><code>INFO</code></td><td>Application progress and important variables</td></tr>
+      <tr><td><code>TRIVIAL</code></td><td>Fine-grained tracing</td></tr>
+      <tr><td><code>ALL</code></td><td>Everything</td></tr>
+    </table>
+    <div class="tip">For this tool: use <strong>INFO</strong> in production. Use <strong>DEBUG</strong> or <strong>ALL</strong> only when actively troubleshooting — these produce very large files quickly.</div>
+  </div>
+
+  <h2>Option 1 — Configure via Server Console (UI)</h2>
+  <div class="card">
+    <ol>
+      <li>Open <strong>Server Console</strong> → <strong>Administration</strong> → <strong>Configuration</strong> → <strong>Log</strong></li>
+      <li>Select the log category you want to enable (e.g. <em>Engine</em>)</li>
+      <li>Set <strong>Log Level</strong> to <code>INFO</code> (or higher if needed)</li>
+      <li>Set <strong>Appender</strong> to <em>RollingFile</em></li>
+      <li>Set <strong>File Name</strong> — leave default or use an absolute path</li>
+      <li>Set <strong>Max File Size</strong> (e.g. <code>50MB</code>) and <strong>Max Backup Index</strong> (e.g. <code>5</code>)</li>
+      <li>Save and restart the Logi Report Server</li>
+    </ol>
+    <p>Repeat for each log type you want to collect.</p>
+  </div>
+
+  <h2>Option 2 — Configure via LogConfig.properties</h2>
+  <div class="card">
+    <p>Edit <code>&lt;install_root&gt;\bin\LogConfig.properties</code>. Example for Engine log:</p>
+    <pre>log4j.logger.Engine=INFO, EngineAppender
+
+log4j.appender.EngineAppender=org.apache.log4j.RollingFileAppender
+log4j.appender.EngineAppender.File=C:/LogiReport/Server/logs/Engine.log
+log4j.appender.EngineAppender.MaxFileSize=50MB
+log4j.appender.EngineAppender.MaxBackupIndex=5
+log4j.appender.EngineAppender.layout=org.apache.log4j.PatternLayout
+log4j.appender.EngineAppender.layout.ConversionPattern=%m [%t][%p][%d{dd MM yyyy HH:mm:ss,SSS}]%n</pre>
+
+    <p>Repeat the block for each log type, substituting the category name:</p>
+    <table>
+      <tr><th>Logger name</th><th>Appender name (convention)</th><th>File name</th></tr>
+      <tr><td><code>Engine</code></td><td><code>EngineAppender</code></td><td><code>Engine.log</code></td></tr>
+      <tr><td><code>DHTML</code></td><td><code>DHTMLAppender</code></td><td><code>DHTML.log</code></td></tr>
+      <tr><td><code>Access</code></td><td><code>AccessAppender</code></td><td><code>Access.log</code></td></tr>
+      <tr><td><code>Error</code></td><td><code>ErrorAppender</code></td><td><code>Error.log</code></td></tr>
+      <tr><td><code>Event</code></td><td><code>EventAppender</code></td><td><code>Event.log</code></td></tr>
+      <tr><td><code>Debug</code></td><td><code>DebugAppender</code></td><td><code>Debug.log</code></td></tr>
+      <tr><td><code>Performance</code></td><td><code>PerfAppender</code></td><td><code>Performance.log</code></td></tr>
+      <tr><td><code>Dump</code></td><td><code>DumpAppender</code></td><td><code>Dump.log</code></td></tr>
+    </table>
+
+    <div class="warn"><strong>Performance note:</strong> Do not use <code>%C</code>, <code>%F</code>, <code>%L</code>, or <code>%M</code> in the ConversionPattern — they use reflection and significantly slow down logging.</div>
+
+    <h3>Daily rotation instead of size-based</h3>
+    <pre>log4j.appender.EngineAppender=org.apache.log4j.DailyRollingFileAppender
+log4j.appender.EngineAppender.DatePattern='.'yyyy-MM-dd</pre>
+
+    <p>After editing, restart the Logi Report Server for changes to take effect.</p>
+  </div>
+
+  <h2>Command-line startup flags</h2>
+  <div class="card">
+    <p>These flags override <code>LogConfig.properties</code> at server start:</p>
+    <table>
+      <tr><th>Flag</th><th>Effect</th></tr>
+      <tr><td><code>-vDebug</code></td><td>Engine → file at INFO level</td></tr>
+      <tr><td><code>-vError</code></td><td>Engine → file at ERROR level</td></tr>
+      <tr><td><code>-logall</code></td><td>All loggers → INFO level</td></tr>
+      <tr><td><code>-log[:fileName]</code></td><td>Engine → specified file at DEBUG level</td></tr>
+    </table>
+  </div>
+
+  <h2>Recommended setup for this tool</h2>
+  <div class="card">
+    <div class="tip">
+      Enable at least these log types at <strong>INFO</strong> level for the most useful analysis:<br>
+      <strong>Engine, DHTML, Error, Access, Dump</strong>
+    </div>
+    <ul>
+      <li>Use <strong>RollingFile</strong> with <code>MaxFileSize=50MB</code> and <code>MaxBackupIndex=3</code> to prevent disk pressure</li>
+      <li>Collect logs during a representative workload (minutes to hours depending on traffic)</li>
+      <li>Upload all <code>.log</code> files together — this tool correlates events across files by timestamp</li>
+      <li>If your server uses Organisations, each organisation has its own log subfolder — collect from all relevant subfolders</li>
+    </ul>
+  </div>
+
+</main>
+</body>
+</html>
