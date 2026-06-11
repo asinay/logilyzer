@@ -56,3 +56,51 @@ def no_data_section(filename: str, log_type: str, reason: str = "") -> str:
         filename, log_type,
         f'<p class="no-data">{msg}</p>'
     )
+
+
+def raw_log_block(df: pd.DataFrame, max_rows: int = 2000) -> str:
+    """Collapsible raw-log table appended to every section."""
+    if df is None or df.empty:
+        return ""
+
+    total = len(df)
+    display = df.head(max_rows)
+    truncated = total > max_rows
+
+    cols = [c for c in ("timestamp", "level", "thread", "message") if c in display.columns]
+
+    def _esc(s: str) -> str:
+        return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    header = "".join(f"<th>{c}</th>" for c in cols)
+    rows_html = ""
+    for _, row in display.iterrows():
+        cells = ""
+        for c in cols:
+            val = row[c]
+            if c == "timestamp" and pd.notna(val):
+                val = str(val)[:19]
+            elif c == "message":
+                val = _esc(str(val))[:600]
+                val = f'<span style="white-space:pre-wrap;font-family:monospace;font-size:.75rem">{val}</span>'
+            else:
+                val = _esc(str(val)) if pd.notna(val) else ""
+            cells += f"<td>{val}</td>"
+        rows_html += f"<tr>{cells}</tr>"
+
+    note = (
+        f'<p style="font-size:.75rem;color:#888;margin:.4rem 0">'
+        f'Showing first {max_rows:,} of {total:,} rows.</p>'
+    ) if truncated else ""
+
+    return f"""
+<details class="raw-log">
+  <summary>Raw log &nbsp;<span class="raw-count">{total:,} rows</span></summary>
+  {note}
+  <div style="overflow-x:auto;max-height:420px;overflow-y:auto;margin-top:.5rem">
+    <table class="raw-table">
+      <thead><tr>{header}</tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+  </div>
+</details>"""

@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from log_parser import detect_log_type, parse_log_file, LogFile
 from analyzers import get_analyzer
+from analyzers._base import apply_time_filter, raw_log_block
 
 app = FastAPI(title="Logi Report Logs Parser")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -98,7 +99,11 @@ async def _run_analyzer(lf: LogFile, time_from: Optional[str], time_to: Optional
     if analyzer is None:
         return _unsupported_section(lf)
     try:
-        return await analyzer.analyze(lf, time_from=time_from, time_to=time_to)
+        section = await analyzer.analyze(lf, time_from=time_from, time_to=time_to)
+        # Inject filtered raw log before closing </div>
+        filtered_df = apply_time_filter(lf.df, time_from, time_to) if lf.has_data else lf.df
+        raw = raw_log_block(filtered_df)
+        return section.rstrip().rstrip("</div>").rstrip() + raw + "\n</div>" if raw else section
     except Exception as exc:
         return f'<div class="section error"><h2>{lf.filename}</h2><p>Analysis failed: {exc}</p></div>'
 
@@ -283,6 +288,68 @@ def _build_report(
   table {{ width: 100%; border-collapse: collapse; }}
   th, td {{ padding: .3rem .5rem; }}
   thead tr {{ border-bottom: 2px solid #dee2e6; }}
+
+  /* ── Raw log block ── */
+  .raw-log {{
+    margin-top: 1.25rem;
+    border: 1px solid #dde3ea;
+    border-radius: 5px;
+    overflow: hidden;
+  }}
+  .raw-log summary {{
+    cursor: pointer;
+    padding: .5rem .9rem;
+    font-size: .82rem;
+    font-weight: 600;
+    color: #1a3a5c;
+    background: #f6f8fb;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }}
+  .raw-log summary::-webkit-details-marker {{ display: none; }}
+  .raw-log summary::before {{
+    content: "▶";
+    font-size: .65rem;
+    transition: transform .2s;
+  }}
+  .raw-log[open] summary::before {{ transform: rotate(90deg); }}
+  .raw-count {{
+    background: #e8eef4;
+    color: #1a3a5c;
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: .72rem;
+    font-weight: normal;
+  }}
+  .raw-table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .78rem;
+    font-family: monospace;
+  }}
+  .raw-table thead th {{
+    position: sticky;
+    top: 0;
+    background: #f0f4f8;
+    text-align: left;
+    padding: .3rem .6rem;
+    border-bottom: 1px solid #dde3ea;
+    font-family: system-ui, sans-serif;
+    font-size: .75rem;
+    color: #475569;
+    white-space: nowrap;
+  }}
+  .raw-table tbody tr:nth-child(even) {{ background: #f9fafb; }}
+  .raw-table tbody tr:hover {{ background: #e8f0f8; }}
+  .raw-table td {{
+    padding: .25rem .6rem;
+    vertical-align: top;
+    border-bottom: 1px solid #f1f5f9;
+    max-width: 700px;
+  }}
 </style>
 </head>
 <body>
