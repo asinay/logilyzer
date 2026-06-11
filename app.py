@@ -371,7 +371,7 @@ def _build_report(
   .raw-toolbar {{
     display: flex;
     align-items: center;
-    gap: .6rem;
+    gap: .5rem;
     padding: .5rem .75rem;
     background: #f6f8fb;
     border-bottom: 1px solid #dde3ea;
@@ -384,11 +384,29 @@ def _build_report(
     font-size: .78rem;
     outline: none;
   }}
+  .raw-search {{
+    flex: 1;
+    min-width: 120px;
+    padding: .25rem .5rem;
+    border: 1px solid #ccd3dc;
+    border-radius: 4px;
+    font-size: .78rem;
+    outline: none;
+  }}
+  .raw-search:focus {{ border-color: #1a3a5c; }}
   .raw-match-count {{
     font-size: .72rem;
     color: #64748b;
-    margin-left: auto;
+    white-space: nowrap;
   }}
+  .raw-table thead th {{
+    cursor: pointer;
+    user-select: none;
+  }}
+  .raw-table thead th:hover {{ background: #e2eaf4; }}
+  .sort-icon {{ margin-left: .3rem; font-size: .65rem; opacity: .45; }}
+  .sort-asc  .sort-icon {{ opacity: 1; }}
+  .sort-desc .sort-icon {{ opacity: 1; }}
   .raw-note {{ font-size:.75rem; color:#888; padding:.3rem .75rem; }}
   .raw-scroll {{ overflow-x:auto; max-height:420px; overflow-y:auto; }}
   .raw-table {{
@@ -480,15 +498,18 @@ def _build_report(
   }}
 
   function applyFilters() {{
-    const needle   = (document.getElementById('global-search').value || '').toLowerCase();
+    const globalNeedle = (document.getElementById('global-search').value || '').toLowerCase();
     const onLevels = new Set(
       Array.from(document.querySelectorAll('.lvl-btn.on')).map(b => b.dataset.lvl)
     );
 
     document.querySelectorAll('.raw-table').forEach(tbl => {{
-      const tableId   = tbl.id;
-      const sel       = tbl.closest('.raw-log').querySelector('.raw-thread-select');
-      const threadFilter = sel ? sel.value : '';
+      const tableId      = tbl.id;
+      const container    = tbl.closest('.raw-log');
+      const sel          = container.querySelector('.raw-thread-select');
+      const localSearch  = container.querySelector('.raw-search');
+      const threadFilter = sel        ? sel.value                            : '';
+      const localNeedle  = localSearch ? localSearch.value.toLowerCase()     : '';
       let visible = 0;
 
       tbl.querySelectorAll('tbody tr').forEach(tr => {{
@@ -497,37 +518,74 @@ def _build_report(
         const text   = tr.textContent.toLowerCase();
 
         const levelOk  = !level || onLevels.has(level) || onLevels.size === 0;
-        const threadOk = !threadFilter || thread === threadFilter;
-        const textOk   = !needle || text.includes(needle);
+        const threadOk = !threadFilter  || thread === threadFilter;
+        const globalOk = !globalNeedle  || text.includes(globalNeedle);
+        const localOk  = !localNeedle   || text.includes(localNeedle);
 
-        const show = levelOk && threadOk && textOk;
+        const show = levelOk && threadOk && globalOk && localOk;
         tr.classList.toggle('hidden', !show);
         if (show) visible++;
 
-        // Highlight search match in message cell (last td)
-        if (needle && show) {{
-          const msgTd = tr.querySelector('td:last-child span');
-          if (msgTd) {{
-            const raw = msgTd.textContent;
-            const idx = raw.toLowerCase().indexOf(needle);
+        // Highlight local search match in message cell
+        const msgTd = tr.querySelector('td:last-child span');
+        if (msgTd) {{
+          const needle = localNeedle || globalNeedle;
+          const raw = msgTd.getAttribute('data-raw') || msgTd.textContent;
+          msgTd.setAttribute('data-raw', raw);
+          if (needle && show) {{
+            const lo = raw.toLowerCase();
+            const idx = lo.indexOf(needle);
             if (idx >= 0) {{
               msgTd.innerHTML =
                 _esc(raw.slice(0, idx)) +
                 '<mark>' + _esc(raw.slice(idx, idx + needle.length)) + '</mark>' +
                 _esc(raw.slice(idx + needle.length));
-            }} else {{
-              msgTd.textContent = raw;
+              return;
             }}
           }}
-        }} else {{
-          const msgTd = tr.querySelector('td:last-child span');
-          if (msgTd && msgTd.querySelector('mark')) msgTd.textContent = msgTd.textContent;
+          msgTd.textContent = raw;
         }}
       }});
 
       const countEl = document.getElementById(tableId + '-count');
-      if (countEl) countEl.textContent = visible + ' rows';
+      if (countEl) countEl.textContent = visible.toLocaleString() + ' rows';
     }});
+  }}
+
+  // ── Sorting ───────────────────────────────────────────────
+  const _sortState = {{}};  // tableId -> {{ col, asc }}
+
+  function sortTable(tableId, col) {{
+    const tbl  = document.getElementById(tableId);
+    const prev = _sortState[tableId] || {{ col: -1, asc: true }};
+    const asc  = prev.col === col ? !prev.asc : true;
+    _sortState[tableId] = {{ col, asc }};
+
+    // Update header icons
+    tbl.querySelectorAll('thead th').forEach((th, i) => {{
+      th.classList.remove('sort-asc', 'sort-desc');
+      const icon = th.querySelector('.sort-icon');
+      if (i === col) {{
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+        if (icon) icon.textContent = asc ? ' ↑' : ' ↓';
+      }} else {{
+        if (icon) icon.textContent = ' ⇅';
+      }}
+    }});
+
+    const tbody = tbl.querySelector('tbody');
+    const rows  = Array.from(tbody.querySelectorAll('tr'));
+
+    rows.sort((a, b) => {{
+      const ta = (a.cells[col] ? a.cells[col].textContent : '').trim();
+      const tb = (b.cells[col] ? b.cells[col].textContent : '').trim();
+      // Numeric sort if both look like numbers
+      const na = parseFloat(ta), nb = parseFloat(tb);
+      const cmp = (!isNaN(na) && !isNaN(nb)) ? na - nb : ta.localeCompare(tb);
+      return asc ? cmp : -cmp;
+    }});
+
+    rows.forEach(r => tbody.appendChild(r));
   }}
 
   function _esc(s) {{

@@ -88,7 +88,11 @@ def raw_log_block(df: pd.DataFrame, max_rows: int = 2000) -> str:
         f'{thread_opts}</select>'
     ) if threads else ""
 
-    header = "".join(f"<th>{c}</th>" for c in cols)
+    header = "".join(
+        f'<th data-col="{i}" onclick="sortTable(\'{table_id}\',{i})">'
+        f'{c}<span class="sort-icon">⇅</span></th>'
+        for i, c in enumerate(cols)
+    )
     rows_html = ""
     for _, row in display.iterrows():
         lvl    = _esc(str(row["level"]))   if "level"  in cols and pd.notna(row.get("level"))  else ""
@@ -115,6 +119,8 @@ def raw_log_block(df: pd.DataFrame, max_rows: int = 2000) -> str:
   <summary>Raw log &nbsp;<span class="raw-count">{total:,} rows</span></summary>
   <div class="raw-toolbar">
     {thread_select}
+    <input type="search" class="raw-search" data-table="{table_id}"
+           placeholder="Search this table…" oninput="applyFilters()">
     <span class="raw-match-count" id="{table_id}-count"></span>
   </div>
   {note}
