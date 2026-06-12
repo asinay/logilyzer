@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LogiLyzer</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBlYTVlOSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzAzNjlhMSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsLjM1KSIvPjxyZWN0IHg9IjEwIiB5PSIxNCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LC4yNSkiLz48cG9seWxpbmUgcG9pbnRzPSI4LDI2IDEzLDI2IDE2LDE5IDE5LDMxIDIyLDIzIDI1LDI2IDMyLDI2IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -365,6 +366,7 @@
       </div>
       <p>Drag &amp; drop log files here, or click to browse</p>
       <small>Engine.log, Access.log, Error.log, DHTML.log, Dump.log and more — multiple files accepted</small>
+      <small style="margin-top:.4rem;color:#f59e0b;font-weight:500">&#9888; Supports Logi Report Server V23.x and V25.x. Earlier versions (V16 and below) use a different log format and are not supported.</small>
     </div>
     <input type="file" id="file-input" multiple accept=".log,.txt,.out,.csv">
     <ul id="file-list"></ul>

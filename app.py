@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from log_parser import detect_log_type, parse_log_file, LogFile
 from analyzers import get_analyzer
 from analyzers._base import apply_time_filter, raw_log_block, server_info_block
+from analyzers.jvm_health import jvm_health_block
 
 app = FastAPI(title="LogiLyzer")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -106,6 +107,9 @@ async def _run_analyzer(lf: LogFile, time_from: Optional[str], time_to: Optional
         si = server_info_block(lf.headers)
         if si:
             extras += "\n" + si
+        jvm = jvm_health_block(lf, time_from=time_from, time_to=time_to)
+        if jvm:
+            extras += "\n" + jvm
         filtered_df = apply_time_filter(lf.df, time_from, time_to) if lf.has_data else lf.df
         raw = raw_log_block(filtered_df)
         if raw:
@@ -178,6 +182,7 @@ def _build_report(
 <head>
 <meta charset="utf-8">
 <title>LogiLyzer</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSI0MCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzBlYTVlOSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzAzNjlhMSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2cpIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsLjM1KSIvPjxyZWN0IHg9IjEwIiB5PSIxNCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LC4yNSkiLz48cG9seWxpbmUgcG9pbnRzPSI4LDI2IDEzLDI2IDE2LDE5IDE5LDMxIDIyLDIzIDI1LDI2IDMyLDI2IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMi4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGZpbGw9Im5vbmUiLz48L3N2Zz4=">
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
@@ -440,6 +445,39 @@ def _build_report(
   .lvl-btn[data-lvl="INFO"]  {{ background:#dbeafe; color:#1e40af; border-color:#93c5fd; }}
   .lvl-btn[data-lvl="DEBUG"] {{ background:#f1f5f9; color:#475569; border-color:#cbd5e1; }}
   .lvl-btn[data-lvl="TRACE"] {{ background:#f1f5f9; color:#94a3b8; border-color:#e2e8f0; }}
+
+  /* ── JVM health block ── */
+  .jvm-health-block {{
+    border: 1px solid #fca5a5;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    background: #fff;
+  }}
+  .jvm-health-block:not([open]) {{ border-color: #fca5a5; }}
+  .jvm-health-block summary {{
+    cursor: pointer;
+    padding: .45rem .9rem;
+    background: #fff5f5;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }}
+  .jvm-health-block summary::-webkit-details-marker {{ display: none; }}
+  .jvm-health-block summary::before {{
+    content: "▶";
+    font-size: .6rem;
+    color: #991b1b;
+    transition: transform .2s;
+    flex-shrink: 0;
+  }}
+  .jvm-health-block[open] summary::before {{ transform: rotate(90deg); }}
+  .jvm-health-body {{
+    padding: .65rem .9rem .75rem;
+    border-top: 1px solid #fca5a5;
+  }}
 
   /* ── Raw log block ── */
   .raw-log {{
