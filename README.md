@@ -129,7 +129,9 @@ The report includes a **server version pill** on each file in the sidebar — us
 
 ## Sample report
 
-[`demo/sample_report.html`](demo/sample_report.html) is a pre-generated example built from synthetic log data covering Engine, Error, Access, Dump, and DHTML logs. Open it locally in any browser to see what the output looks like before running the tool.
+**[View live sample report →](https://asinay.github.io/logilyzer/demo/sample_LogiLyzer_report.html)**
+
+A pre-generated example built from synthetic log data covering Engine, Error, Access, Dump, and DHTML logs.
 
 To regenerate it:
 
