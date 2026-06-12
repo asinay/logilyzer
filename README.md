@@ -67,7 +67,7 @@ Reading raw `.log` files to diagnose a performance issue or track down an error 
 
 ![Raw log table](demo/screenshots/raw-log-table.png)
 
-### Raw log filtered — level toggles + thread filter applied (36 WARN rows shown)
+### Raw log filtered — level toggles + thread filter applied (Only show Thread-23)
 
 ![Raw log filtered](demo/screenshots/raw-log-filter.png)
 
