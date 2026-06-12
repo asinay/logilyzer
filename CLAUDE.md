@@ -39,8 +39,8 @@ from analyzers import get_analyzer
 Single-process FastAPI app. No database. Sessions stored in-memory dict in `app.py`.
 
 **Request flow:**
-1. `POST /upload` → `log_parser.detect_log_type()` → `log_parser.parse_log_file()` → session stored
-2. `POST /export` → `analyzers.get_analyzer(log_type).analyze(lf, time_from, time_to)` per file (concurrent via `asyncio.gather`) → `_build_report()` → HTML file download
+1. `POST /upload` → `log_parser.detect_log_type()` → `log_parser.parse_log_file()` → session stored; returns `server_version` per file (parsed from header blocks) for client-side compat warning
+2. `POST /export` → `analyzers.get_analyzer(log_type).analyze(lf, time_from, time_to)` per file (concurrent via `asyncio.gather`) → injects `server_info_block` + `jvm_health_block` + `raw_log_block` → `_build_report()` → HTML file download
 
 **Log format** (critical to understand before editing parser):
 - Each entry ends with `[ThreadName][LEVEL][DD MM YYYY HH:MM:SS,mmm optional_tz]`
@@ -71,7 +71,9 @@ Single-process FastAPI app. No database. Sessions stored in-memory dict in `app.
 | `dhtml` | `T-S/C-A-*-ActionName ... cost=N` → action cost scatter + perf table |
 | `event`/`manage`/`page_report` | Level distribution over time (engine analyzer) |
 
-**`static/index.html`** — vanilla JS, no build step. Three-step UI: upload → time filter → export. Talks to `/upload` and `/export` only.
+**`analyzers/jvm_health.py`** — not a log-type analyzer; called directly from `app.py` after each analyzer. Scans `lf.df` messages for JVM signals (OOM, crash markers, deadlock, StackOverflow, GC pressure) and `lf.raw_text` for JVM args. Returns an HTML block or `''` if nothing found. Severity levels: CRITICAL / HIGH / WARN.
+
+**`static/index.html`** — vanilla JS, no build step. Three-step UI: upload → time filter → generate report. Talks to `/upload` and `/export` only. Shows a version compat warning (red alert) when uploaded files contain a server version < V23.
 
 **Adding a new log type:**
 1. Add filename hint to `_FILENAME_HINTS` in `log_parser.py`
@@ -79,4 +81,7 @@ Single-process FastAPI app. No database. Sessions stored in-memory dict in `app.
 3. Import it in `analyzers/__init__.py` loop
 
 **`outputs/`** — gitignored, holds generated HTML reports.  
-**`sample_logs/`** — gitignored (contents), used for local testing only.
+**`sample_logs/`** — gitignored (contents), used for local testing only.  
+**`demo/sample_LogiLyzer_report.html`** — pre-generated sample report; served live at `https://asinay.github.io/logilyzer/demo/sample_LogiLyzer_report.html` via GitHub Pages.
+
+**Supported server versions:** V23.x and V25.x. V22 and earlier use a different log format and are not supported. Version is detected from the `====...====` startup header block (`Version: Logi Report Server Vxx.x`).
