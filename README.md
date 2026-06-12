@@ -33,6 +33,20 @@ Reading raw `.log` files to diagnose a performance issue or track down an error 
 
 ---
 
+## Quickstart with Docker
+
+No Python installation required.
+
+```bash
+git clone https://github.com/asinay/logilyzer.git
+cd logilyzer
+docker compose up
+```
+
+Open [http://localhost:8000](http://localhost:8000). Exported reports are saved to `./outputs/` on your machine.
+
+---
+
 ## Setup (one-time)
 
 Requires **Python 3.9+**.

@@ -1,3 +1,6 @@
+# Dev logs
+dev-logs/
+
 __pycache__/
 *.pyc
 *.pyo
