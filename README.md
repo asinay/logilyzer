@@ -39,6 +39,10 @@ Reading raw `.log` files to diagnose a performance issue or track down an error 
 
 ![UI overview](demo/screenshots/ui-overview.png)
 
+### Sidebar filters — level toggles and global search (INFO off, showing only ERROR/WARN)
+
+![Sidebar filters](demo/screenshots/sidebar-filters.png)
+
 ### Engine.log — elapsed time scatter, level distribution, active threads
 
 ![Engine analyzer](demo/screenshots/engine.png)
@@ -58,6 +62,14 @@ Reading raw `.log` files to diagnose a performance issue or track down an error 
 ### DHTML.log — action cost scatter, slowest-actions table, server restart info
 
 ![DHTML analyzer](demo/screenshots/dhtml.png)
+
+### Raw log table — sortable columns, search, thread dropdown
+
+![Raw log table](demo/screenshots/raw-log-table.png)
+
+### Raw log filtered — level toggles + thread filter applied (36 WARN rows shown)
+
+![Raw log filtered](demo/screenshots/raw-log-filter.png)
 
 ---
 

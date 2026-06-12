@@ -49,6 +49,51 @@ with sync_playwright() as p:
         else:
             section.screenshot(path=str(OUT / f"{name}.png"))
 
+    # Raw log + filter screenshots — use engine section (most rows)
+    print("  raw-log-table...")
+    page.click("a[href='#sec-engine-log']")
+    page.wait_for_timeout(1000)
+    # open the raw-log <details>
+    page.locator("#sec-engine-log details.raw-log summary").click()
+    page.wait_for_timeout(600)
+    raw_section = page.locator("#sec-engine-log details.raw-log")
+    raw_section.scroll_into_view_if_needed()
+    page.wait_for_timeout(400)
+    box = raw_section.bounding_box()
+    if box:
+        clip_h = min(box["height"], 900)
+        page.screenshot(
+            path=str(OUT / "raw-log-table.png"),
+            clip={"x": box["x"], "y": box["y"], "width": box["width"], "height": clip_h},
+        )
+
+    print("  raw-log-filter...")
+    # reset thread to All, turn off INFO → only ERROR+WARN rows remain
+    page.locator(".raw-thread-select[data-table='raw-tbl-1']").select_option("")
+    page.locator(".lvl-btn[data-lvl='INFO']").click()
+    page.wait_for_timeout(600)
+    raw_section.scroll_into_view_if_needed()
+    page.wait_for_timeout(400)
+    # crop: sidebar (x=0) + content area, from raw-log top, 700px tall
+    raw_box = raw_section.bounding_box()
+    if raw_box:
+        page.screenshot(
+            path=str(OUT / "raw-log-filter.png"),
+            clip={"x": 0, "y": raw_box["y"] - 20, "width": 1400, "height": 700},
+        )
+    else:
+        page.screenshot(path=str(OUT / "raw-log-filter.png"))
+
+    print("  sidebar-filters...")
+    # sidebar-only crop showing level toggle buttons in filtered state
+    sidebar = page.locator(".sidebar")
+    sb_box = sidebar.bounding_box()
+    if sb_box:
+        page.screenshot(
+            path=str(OUT / "sidebar-filters.png"),
+            clip={"x": sb_box["x"], "y": sb_box["y"], "width": sb_box["width"], "height": min(sb_box["height"], 500)},
+        )
+
     browser.close()
 
 print(f"Screenshots saved to {OUT}")
