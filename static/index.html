@@ -377,6 +377,7 @@
       <span id="status-text">Uploading…</span>
     </div>
     <div id="upload-alert"></div>
+    <div id="compat-alert"></div>
   </div>
 
   <div class="step-connector"></div>
@@ -422,7 +423,7 @@
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Export Report
+        Generate Report
       </button>
       <button class="btn btn-secondary" id="btn-select-all">Select all</button>
       <button class="btn btn-secondary" id="btn-select-none">Deselect all</button>
@@ -497,6 +498,7 @@
       connector2.style.display  = 'flex';
       updateExportButton();
       populateTimeRange();
+      checkVersionCompat(data.files);
     } catch (err) {
       showAlert(uploadAlert, 'error', `Upload failed: ${err.message}`);
     } finally {
@@ -587,6 +589,30 @@
     const p = n => String(n).padStart(2,'0');
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   }
+  function checkVersionCompat(files) {
+    const compatAlert = document.getElementById('compat-alert');
+    compatAlert.innerHTML = '';
+    const unsupported = [];
+    for (const f of files) {
+      if (!f.server_version) continue;
+      // Extract major version number: "Logi Report Server V25.1" -> 25
+      const m = f.server_version.match(/V(\d+)/i);
+      if (!m) continue;
+      const major = parseInt(m[1], 10);
+      if (major < 23) unsupported.push({ filename: f.filename, version: f.server_version });
+    }
+    if (!unsupported.length) return;
+    const list = unsupported.map(u =>
+      `<strong>${esc(u.filename)}</strong> (${esc(u.version)})`
+    ).join(', ');
+    compatAlert.innerHTML =
+      `<div class="alert alert-error" style="margin-top:.6rem">` +
+      `&#9888; Unsupported version detected: ${list}. ` +
+      `LogiLyzer supports Logi Report Server V23.x and V25.x. ` +
+      `Results for this file may be incomplete or incorrect.` +
+      `</div>`;
+  }
+
   function timestamp() {
     const d = new Date(), p = n => String(n).padStart(2,'0');
     return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;

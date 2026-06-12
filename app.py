@@ -56,6 +56,7 @@ async def upload_files(files: list[UploadFile] = File(...)):
                 "time_min": lf.time_min,
                 "time_max": lf.time_max,
                 "has_data": lf.has_data,
+                "server_version": _detect_server_version(lf),
             }
             for lf in log_files
         ],
@@ -120,6 +121,13 @@ async def _run_analyzer(lf: LogFile, time_from: Optional[str], time_to: Optional
         return section
     except Exception as exc:
         return f'<div class="section error"><h2>{lf.filename}</h2><p>Analysis failed: {exc}</p></div>'
+
+
+def _detect_server_version(lf: LogFile) -> Optional[str]:
+    for h in lf.headers:
+        if h.server_version:
+            return h.server_version
+    return None
 
 
 def _unsupported_section(lf: LogFile) -> str:
