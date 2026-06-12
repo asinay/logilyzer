@@ -33,6 +33,34 @@ Reading raw `.log` files to diagnose a performance issue or track down an error 
 
 ---
 
+## Screenshots
+
+### Full UI — sidebar, version badges, log-level filters
+
+![UI overview](demo/screenshots/ui-overview.png)
+
+### Engine.log — elapsed time scatter, level distribution, active threads
+
+![Engine analyzer](demo/screenshots/engine.png)
+
+### Error.log — error/warning rate timeline, exception breakdown, top messages
+
+![Error analyzer](demo/screenshots/error.png)
+
+### Access.log — request volume, HTTP status codes, method distribution
+
+![Access analyzer](demo/screenshots/access.png)
+
+### Dump.log — queue depth (Running / Queuing / Waiting), OnDemand vs Scheduled, peak pressure table
+
+![Dump analyzer](demo/screenshots/dump.png)
+
+### DHTML.log — action cost scatter, slowest-actions table, server restart info
+
+![DHTML analyzer](demo/screenshots/dhtml.png)
+
+---
+
 ## Quickstart with Docker
 
 No Python installation required.
