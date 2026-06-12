@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Logi Report Logs Parser</title>
+<title>LogiLyzer</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,97 +14,200 @@
     min-height: 100vh;
   }
 
-  /* ── Header ──────────────────────────────────────────────── */
+  /* ── Header ───────────────────────────────────────────────── */
   header {
-    background: #1a3a5c;
+    background: linear-gradient(135deg, #0d1b2e 0%, #1a3a5c 60%, #1e4d7b 100%);
     color: #fff;
-    padding: 1rem 2rem;
+    padding: 1.1rem 2rem;
     display: flex;
     align-items: center;
     gap: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    position: relative;
+    overflow: hidden;
   }
-  header h1 { font-size: 1.3rem; font-weight: 600; }
-  header p  { font-size: .8rem; opacity: .75; margin-top: 2px; }
+  /* subtle grid texture */
+  header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    position: relative;
+  }
+
+  /* ── Logo SVG mark ── */
+  .logo-mark {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(0,180,216,.4));
+  }
+
+  .brand-text { line-height: 1.15; }
+  .brand-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+  }
+  .brand-name .logi  { color: #fff; }
+  .brand-name .lyzer {
+    color: #38bdf8;
+    font-weight: 400;
+  }
+  .brand-tagline {
+    font-size: .72rem;
+    color: rgba(255,255,255,.5);
+    letter-spacing: .02em;
+    margin-top: 1px;
+  }
+
   .help-link {
     margin-left: auto;
-    font-size: .8rem;
-    color: rgba(255,255,255,.8);
+    font-size: .78rem;
+    color: rgba(255,255,255,.7);
     text-decoration: none;
-    border: 1px solid rgba(255,255,255,.35);
-    border-radius: 4px;
-    padding: .3rem .75rem;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    padding: .35rem .85rem;
     white-space: nowrap;
+    position: relative;
+    transition: background .15s, color .15s, border-color .15s;
+    backdrop-filter: blur(4px);
+    background: rgba(255,255,255,.05);
   }
-  .help-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+  .help-link:hover {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border-color: rgba(255,255,255,.35);
+  }
 
-  /* ── Main layout ─────────────────────────────────────────── */
-  main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  /* ── Main layout ──────────────────────────────────────────── */
+  main { max-width: 820px; margin: 2rem auto; padding: 0 1rem 3rem; }
 
-  /* ── Cards ───────────────────────────────────────────────── */
+  /* ── Step header ──────────────────────────────────────────── */
+  .step-label {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    margin-bottom: 1rem;
+  }
+  .step-num {
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, #0ea5e9, #0891b2);
+    color: #fff;
+    border-radius: 50%;
+    font-size: .75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(14,165,233,.35);
+  }
+  .step-title {
+    font-size: .95rem;
+    font-weight: 600;
+    color: #0f2744;
+  }
+  .step-hint {
+    font-size: .78rem;
+    color: #94a3b8;
+    margin-left: auto;
+  }
+
+  /* ── Cards ────────────────────────────────────────────────── */
   .card {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.1);
-    padding: 1.5rem;
-    margin-bottom: 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+    border: 1px solid rgba(0,0,0,.05);
+    padding: 1.4rem 1.5rem;
+    margin-bottom: 1rem;
   }
-  .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #1a3a5c; }
 
-  /* ── Drop zone ───────────────────────────────────────────── */
+  /* ── Drop zone ────────────────────────────────────────────── */
   #drop-zone {
-    border: 2px dashed #99afc4;
-    border-radius: 6px;
+    border: 2px dashed #c7d8e8;
+    border-radius: 10px;
     padding: 2.5rem 1rem;
     text-align: center;
     cursor: pointer;
     transition: border-color .2s, background .2s;
-    color: #667;
+    color: #64748b;
+    background: #f8fafc;
   }
-  #drop-zone.drag-over {
-    border-color: #1a3a5c;
-    background: #e8f0f8;
+  #drop-zone:hover, #drop-zone.drag-over {
+    border-color: #0ea5e9;
+    background: #f0f9ff;
+    color: #0369a1;
   }
-  #drop-zone .icon { font-size: 2rem; margin-bottom: .5rem; }
-  #drop-zone p { font-size: .9rem; }
-  #drop-zone small { font-size: .75rem; color: #999; display: block; margin-top: .25rem; }
+  .drop-icon {
+    margin: 0 auto .75rem;
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .drop-icon svg { width: 24px; height: 24px; }
+  #drop-zone p   { font-size: .9rem; font-weight: 500; }
+  #drop-zone small { font-size: .75rem; color: #94a3b8; display: block; margin-top: .3rem; }
   #file-input { display: none; }
 
-  /* ── File list ───────────────────────────────────────────── */
-  #file-list { list-style: none; margin-top: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+  /* ── File list ────────────────────────────────────────────── */
+  #file-list { list-style: none; margin-top: .85rem; display: flex; flex-direction: column; gap: .4rem; }
   .file-item {
     display: flex;
     align-items: center;
-    gap: .75rem;
-    background: #f6f8fb;
-    border: 1px solid #dde3ea;
-    border-radius: 6px;
-    padding: .6rem .9rem;
+    gap: .65rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: .55rem .85rem;
+    transition: border-color .15s;
   }
-  .file-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
-  .file-item .fname { font-size: .9rem; flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-item .meta  { font-size: .75rem; color: #888; white-space: nowrap; }
+  .file-item:hover { border-color: #cbd5e1; }
+  .file-item input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; accent-color: #0ea5e9; }
+  .file-item .fname { font-size: .875rem; flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1e293b; }
+  .file-item .meta  { font-size: .72rem; color: #94a3b8; white-space: nowrap; }
   .badge {
-    font-size: .7rem;
+    font-size: .68rem;
     padding: 2px 7px;
-    border-radius: 3px;
-    background: #e1ecf7;
-    color: #1a3a5c;
+    border-radius: 4px;
+    background: #dbeafe;
+    color: #1d4ed8;
     font-weight: 600;
     white-space: nowrap;
+    letter-spacing: .02em;
   }
   .file-item .remove-btn {
     background: none;
     border: none;
     cursor: pointer;
-    color: #aaa;
-    font-size: 1rem;
+    color: #cbd5e1;
+    font-size: .95rem;
     line-height: 1;
     padding: 2px 4px;
-    border-radius: 3px;
+    border-radius: 4px;
+    transition: color .15s, background .15s;
   }
-  .file-item .remove-btn:hover { color: #dc3545; background: #ffeaea; }
+  .file-item .remove-btn:hover { color: #ef4444; background: #fef2f2; }
 
-  /* ── Time filter ─────────────────────────────────────────── */
+  /* ── Time filter ──────────────────────────────────────────── */
   .filter-row {
     display: flex;
     flex-wrap: wrap;
@@ -112,110 +215,156 @@
     align-items: flex-end;
   }
   .filter-group { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 180px; }
-  .filter-group label { font-size: .8rem; color: #555; font-weight: 500; }
+  .filter-group label { font-size: .78rem; color: #475569; font-weight: 600; letter-spacing: .01em; }
   .filter-group input {
     padding: .45rem .65rem;
-    border: 1px solid #ccd;
-    border-radius: 5px;
-    font-size: .9rem;
-    background: #fafafa;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: .875rem;
+    background: #f8fafc;
     width: 100%;
+    color: #1e293b;
+    transition: border-color .15s, box-shadow .15s;
   }
-  .filter-group input:focus { outline: none; border-color: #1a3a5c; background: #fff; }
-
-  .time-hint {
-    font-size: .75rem;
-    color: #888;
-    margin-top: .5rem;
+  .filter-group input:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(14,165,233,.12);
   }
+  .time-hint { font-size: .73rem; color: #94a3b8; margin-top: .5rem; }
 
-  /* ── Buttons ─────────────────────────────────────────────── */
+  /* ── Buttons ──────────────────────────────────────────────── */
   .btn {
     display: inline-flex;
     align-items: center;
     gap: .4rem;
     padding: .55rem 1.2rem;
     border: none;
-    border-radius: 5px;
-    font-size: .9rem;
+    border-radius: 7px;
+    font-size: .875rem;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity .15s, transform .1s;
+    transition: opacity .15s, transform .1s, box-shadow .15s;
   }
   .btn:active { transform: scale(.97); }
-  .btn:disabled { opacity: .45; cursor: not-allowed; }
-  .btn-primary { background: #1a3a5c; color: #fff; }
-  .btn-primary:hover:not(:disabled) { background: #235079; }
-  .btn-secondary { background: #e8eef4; color: #1a3a5c; }
-  .btn-secondary:hover:not(:disabled) { background: #d2dde9; }
-
-  .actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .5rem; }
-
-  /* ── Status / progress ───────────────────────────────────── */
-  #status {
-    display: none;
-    align-items: center;
-    gap: .6rem;
-    font-size: .9rem;
-    color: #555;
-    margin-top: .75rem;
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(14,165,233,.35);
   }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 4px 14px rgba(14,165,233,.45);
+    opacity: .93;
+  }
+  .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+  .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+
+  .actions { display: flex; gap: .65rem; flex-wrap: wrap; margin-top: .5rem; }
+
+  /* ── Status / progress ────────────────────────────────────── */
+  #status { display: none; align-items: center; gap: .6rem; font-size: .875rem; color: #64748b; margin-top: .75rem; }
   #status.visible { display: flex; }
   .spinner {
-    width: 18px; height: 18px;
-    border: 3px solid #dde;
-    border-top-color: #1a3a5c;
+    width: 16px; height: 16px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #0ea5e9;
     border-radius: 50%;
     animation: spin .7s linear infinite;
     flex-shrink: 0;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .alert {
-    padding: .65rem .9rem;
-    border-radius: 5px;
-    font-size: .875rem;
-    margin-top: .75rem;
-  }
-  .alert-success { background: #d1fae5; color: #065f46; }
-  .alert-error   { background: #fee2e2; color: #991b1b; }
-  .alert-info    { background: #dbeafe; color: #1e40af; }
+  .alert { padding: .65rem .9rem; border-radius: 7px; font-size: .85rem; margin-top: .75rem; }
+  .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .alert-info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
-  /* ── Empty state ─────────────────────────────────────────── */
-  #empty-state {
-    text-align: center;
-    color: #aaa;
-    font-size: .9rem;
-    padding: 1rem 0;
+  /* ── Empty state ──────────────────────────────────────────── */
+  #empty-state { text-align: center; color: #94a3b8; font-size: .875rem; padding: .75rem 0; }
+
+  /* ── Divider between steps ────────────────────────────────── */
+  .step-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    margin: -.2rem 0;
+  }
+  .step-connector::before {
+    content: "";
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(to bottom, #e2e8f0, #cbd5e1);
   }
 
-  /* ── Responsive ──────────────────────────────────────────── */
+  /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 600px) {
-    header { padding: .75rem 1rem; }
-    main   { padding: 0 .5rem; }
+    header { padding: .85rem 1rem; }
+    main   { padding: 0 .75rem 2rem; }
     .filter-row { flex-direction: column; }
+    .brand-tagline { display: none; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <h1>Logi Report Logs Parser</h1>
-    <p>Upload one or more Logi Report log files to visualize and export an interactive report</p>
+  <div class="brand">
+    <!-- Logo mark: log file with pulse line -->
+    <svg class="logo-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="10" fill="url(#lg1)"/>
+      <defs>
+        <linearGradient id="lg1" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#0ea5e9"/>
+          <stop offset="100%" stop-color="#0369a1"/>
+        </linearGradient>
+      </defs>
+      <!-- document lines -->
+      <rect x="10" y="10" width="14" height="2" rx="1" fill="rgba(255,255,255,.35)"/>
+      <rect x="10" y="14" width="10" height="2" rx="1" fill="rgba(255,255,255,.25)"/>
+      <!-- pulse / chart line -->
+      <polyline points="8,26 13,26 16,19 19,31 22,23 25,26 32,26"
+        stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+
+    <div class="brand-text">
+      <div class="brand-name">
+        <span class="logi">Logi</span><span class="lyzer">Lyzer</span>
+      </div>
+      <div class="brand-tagline">Logi Report Server log analyzer</div>
+    </div>
   </div>
-  <a class="help-link" href="/static/help.html" target="_blank">&#10067; How to enable logging</a>
+
+  <a class="help-link" href="/static/help.html" target="_blank">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="display:inline;vertical-align:-.15em;margin-right:4px">
+      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M8 11V8M8 5.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    How to enable logging
+  </a>
 </header>
 
 <main>
 
-  <!-- Step 1: Upload -->
+  <!-- Step 1 -->
   <div class="card">
-    <h2>1 — Upload log files</h2>
+    <div class="step-label">
+      <div class="step-num">1</div>
+      <span class="step-title">Upload log files</span>
+    </div>
+
     <div id="drop-zone" role="button" aria-label="Drop log files or click to browse" tabindex="0">
-      <div class="icon">📂</div>
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
       <p>Drag &amp; drop log files here, or click to browse</p>
-      <small>Supported: .log, .txt — multiple files accepted</small>
+      <small>Engine.log, Access.log, Error.log, DHTML.log, Dump.log and more — multiple files accepted</small>
     </div>
     <input type="file" id="file-input" multiple accept=".log,.txt,.out,.csv">
     <ul id="file-list"></ul>
@@ -228,9 +377,15 @@
     <div id="upload-alert"></div>
   </div>
 
-  <!-- Step 2: Filter -->
+  <div class="step-connector"></div>
+
+  <!-- Step 2 -->
   <div class="card" id="filter-card" style="display:none">
-    <h2>2 — Filter by time (optional)</h2>
+    <div class="step-label">
+      <div class="step-num">2</div>
+      <span class="step-title">Filter by time</span>
+      <span class="step-hint">optional</span>
+    </div>
     <div class="filter-row">
       <div class="filter-group">
         <label for="time-from">From</label>
@@ -241,30 +396,39 @@
         <input type="datetime-local" id="time-to" step="1">
       </div>
       <div>
-        <button class="btn btn-secondary" id="btn-clear-filter">Clear filter</button>
+        <button class="btn btn-secondary" id="btn-clear-filter">Clear</button>
       </div>
     </div>
-    <p class="time-hint">Leave blank to include all timestamps.</p>
+    <p class="time-hint">Pre-filled from the earliest and latest timestamps found across all uploaded files. Leave blank to include everything.</p>
   </div>
 
-  <!-- Step 3: Export -->
+  <div class="step-connector" id="step-connector-2" style="display:none"></div>
+
+  <!-- Step 3 -->
   <div class="card" id="export-card" style="display:none">
-    <h2>3 — Export report</h2>
-    <p style="font-size:.875rem;color:#555;margin-bottom:.75rem">
-      Select which files to include in the report, then click Export.
-      The output is a self-contained HTML file with interactive Plotly charts.
+    <div class="step-label">
+      <div class="step-num">3</div>
+      <span class="step-title">Export report</span>
+    </div>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:.85rem">
+      Select which files to include, then export. The output is a self-contained HTML file with interactive charts — open it in any browser, no server needed.
     </p>
     <div class="actions">
       <button class="btn btn-primary" id="btn-export" disabled>
-        ⬇ Export Report
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export Report
       </button>
       <button class="btn btn-secondary" id="btn-select-all">Select all</button>
       <button class="btn btn-secondary" id="btn-select-none">Deselect all</button>
     </div>
     <div id="export-status">
-      <div id="export-spinner" style="display:none; margin-top:.6rem">
-        <div class="spinner" style="display:inline-block"></div>
-        <span style="font-size:.875rem;color:#555;margin-left:.5rem">Generating report…</span>
+      <div id="export-spinner" style="display:none; margin-top:.6rem; display:none; align-items:center; gap:.5rem">
+        <div class="spinner"></div>
+        <span style="font-size:.85rem;color:#64748b">Generating report…</span>
       </div>
       <div id="export-alert"></div>
     </div>
@@ -273,34 +437,30 @@
 </main>
 
 <script>
-  // ── State ──────────────────────────────────────────────────
   let sessionId = null;
-  // [{filename, log_type, row_count, time_min, time_max, has_data, checked}]
   let uploadedFiles = [];
 
-  // ── DOM refs ───────────────────────────────────────────────
-  const dropZone     = document.getElementById('drop-zone');
-  const fileInput    = document.getElementById('file-input');
-  const fileList     = document.getElementById('file-list');
-  const emptyState   = document.getElementById('empty-state');
-  const statusEl     = document.getElementById('status');
-  const statusText   = document.getElementById('status-text');
-  const uploadAlert  = document.getElementById('upload-alert');
-  const filterCard   = document.getElementById('filter-card');
-  const exportCard   = document.getElementById('export-card');
-  const timeFrom     = document.getElementById('time-from');
-  const timeTo       = document.getElementById('time-to');
-  const btnExport    = document.getElementById('btn-export');
-  const btnSelectAll = document.getElementById('btn-select-all');
-  const btnSelectNone= document.getElementById('btn-select-none');
-  const btnClearFilter = document.getElementById('btn-clear-filter');
+  const dropZone      = document.getElementById('drop-zone');
+  const fileInput     = document.getElementById('file-input');
+  const fileList      = document.getElementById('file-list');
+  const emptyState    = document.getElementById('empty-state');
+  const statusEl      = document.getElementById('status');
+  const statusText    = document.getElementById('status-text');
+  const uploadAlert   = document.getElementById('upload-alert');
+  const filterCard    = document.getElementById('filter-card');
+  const exportCard    = document.getElementById('export-card');
+  const connector2    = document.getElementById('step-connector-2');
+  const timeFrom      = document.getElementById('time-from');
+  const timeTo        = document.getElementById('time-to');
+  const btnExport     = document.getElementById('btn-export');
+  const btnSelectAll  = document.getElementById('btn-select-all');
+  const btnSelectNone = document.getElementById('btn-select-none');
+  const btnClearFilter= document.getElementById('btn-clear-filter');
   const exportSpinner = document.getElementById('export-spinner');
-  const exportAlert  = document.getElementById('export-alert');
+  const exportAlert   = document.getElementById('export-alert');
 
-  // ── Drag & drop ────────────────────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
-
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
   dropZone.addEventListener('drop', e => {
@@ -308,13 +468,8 @@
     dropZone.classList.remove('drag-over');
     handleFiles(Array.from(e.dataTransfer.files));
   });
+  fileInput.addEventListener('change', () => { handleFiles(Array.from(fileInput.files)); fileInput.value = ''; });
 
-  fileInput.addEventListener('change', () => {
-    handleFiles(Array.from(fileInput.files));
-    fileInput.value = '';
-  });
-
-  // ── Upload ─────────────────────────────────────────────────
   async function handleFiles(files) {
     if (!files.length) return;
     setStatus(true, 'Uploading…');
@@ -324,23 +479,21 @@
     files.forEach(f => form.append('files', f));
 
     try {
-      const res = await fetch('/upload', { method: 'POST', body: form });
+      const res  = await fetch('/upload', { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
 
       sessionId = data.session_id;
-      // Merge into uploadedFiles (avoid duplicates by filename)
       for (const f of data.files) {
-        const existing = uploadedFiles.findIndex(u => u.filename === f.filename);
-        if (existing >= 0) uploadedFiles[existing] = { ...f, checked: true };
+        const idx = uploadedFiles.findIndex(u => u.filename === f.filename);
+        if (idx >= 0) uploadedFiles[idx] = { ...f, checked: true };
         else uploadedFiles.push({ ...f, checked: true });
       }
       renderFileList();
-      filterCard.style.display = 'block';
-      exportCard.style.display = 'block';
+      filterCard.style.display  = 'block';
+      exportCard.style.display  = 'block';
+      connector2.style.display  = 'flex';
       updateExportButton();
-
-      // Pre-populate time range from the earliest/latest timestamps across all files
       populateTimeRange();
     } catch (err) {
       showAlert(uploadAlert, 'error', `Upload failed: ${err.message}`);
@@ -349,17 +502,13 @@
     }
   }
 
-  // ── File list rendering ─────────────────────────────────────
   function renderFileList() {
     fileList.innerHTML = '';
-    if (uploadedFiles.length === 0) {
-      emptyState.style.display = 'block';
-      return;
-    }
+    if (!uploadedFiles.length) { emptyState.style.display = 'block'; return; }
     emptyState.style.display = 'none';
 
     for (let i = 0; i < uploadedFiles.length; i++) {
-      const f = uploadedFiles[i];
+      const f  = uploadedFiles[i];
       const li = document.createElement('li');
       li.className = 'file-item';
       li.innerHTML = `
@@ -374,36 +523,28 @@
     }
 
     fileList.querySelectorAll('input[type=checkbox]').forEach(cb => {
-      cb.addEventListener('change', () => {
-        uploadedFiles[+cb.dataset.idx].checked = cb.checked;
-        updateExportButton();
-      });
+      cb.addEventListener('change', () => { uploadedFiles[+cb.dataset.idx].checked = cb.checked; updateExportButton(); });
     });
     fileList.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        uploadedFiles.splice(+btn.dataset.idx, 1);
-        renderFileList();
-        updateExportButton();
-      });
+      btn.addEventListener('click', () => { uploadedFiles.splice(+btn.dataset.idx, 1); renderFileList(); updateExportButton(); });
     });
   }
 
   function populateTimeRange() {
     const timestamps = uploadedFiles.flatMap(f => [f.time_min, f.time_max]).filter(Boolean);
     if (!timestamps.length) return;
-    const sorted = timestamps.map(t => new Date(t)).filter(d => !isNaN(d)).sort((a,b) => a-b);
+    const sorted = timestamps.map(t => new Date(t)).filter(d => !isNaN(d)).sort((a, b) => a - b);
     if (sorted.length >= 2) {
       if (!timeFrom.value) timeFrom.value = toLocalInput(sorted[0]);
       if (!timeTo.value)   timeTo.value   = toLocalInput(sorted[sorted.length - 1]);
     }
   }
 
-  // ── Export ─────────────────────────────────────────────────
   btnExport.addEventListener('click', async () => {
     const selected = uploadedFiles.filter(f => f.checked).map(f => f.filename);
     if (!selected.length) return;
 
-    exportSpinner.style.display = 'block';
+    exportSpinner.style.display = 'flex';
     clearAlert(exportAlert);
     btnExport.disabled = true;
 
@@ -415,16 +556,11 @@
 
     try {
       const res = await fetch('/export', { method: 'POST', body: form });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Export failed');
-      }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || 'Export failed'); }
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `logi_report_${timestamp()}.html`;
-      a.click();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `logilyzer_${timestamp()}.html`; a.click();
       URL.revokeObjectURL(url);
       showAlert(exportAlert, 'success', 'Report exported successfully.');
     } catch (err) {
@@ -435,55 +571,23 @@
     }
   });
 
-  btnSelectAll.addEventListener('click', () => {
-    uploadedFiles.forEach(f => f.checked = true);
-    renderFileList();
-    updateExportButton();
-  });
-  btnSelectNone.addEventListener('click', () => {
-    uploadedFiles.forEach(f => f.checked = false);
-    renderFileList();
-    updateExportButton();
-  });
-  btnClearFilter.addEventListener('click', () => {
-    timeFrom.value = '';
-    timeTo.value   = '';
-  });
+  btnSelectAll.addEventListener('click',  () => { uploadedFiles.forEach(f => f.checked = true);  renderFileList(); updateExportButton(); });
+  btnSelectNone.addEventListener('click', () => { uploadedFiles.forEach(f => f.checked = false); renderFileList(); updateExportButton(); });
+  btnClearFilter.addEventListener('click', () => { timeFrom.value = ''; timeTo.value = ''; });
 
-  // ── Helpers ─────────────────────────────────────────────────
-  function updateExportButton() {
-    btnExport.disabled = !sessionId || !uploadedFiles.some(f => f.checked);
-  }
-
-  function setStatus(visible, text = '') {
-    statusEl.classList.toggle('visible', visible);
-    statusText.textContent = text;
-  }
-
-  function showAlert(el, type, msg) {
-    el.innerHTML = `<div class="alert alert-${type}">${esc(msg)}</div>`;
-  }
+  function updateExportButton() { btnExport.disabled = !sessionId || !uploadedFiles.some(f => f.checked); }
+  function setStatus(v, t = '') { statusEl.classList.toggle('visible', v); statusText.textContent = t; }
+  function showAlert(el, type, msg) { el.innerHTML = `<div class="alert alert-${type}">${esc(msg)}</div>`; }
   function clearAlert(el) { el.innerHTML = ''; }
-
-  function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function shortTs(ts) { return ts ? ts.replace('T',' ').substring(0,16) : ''; }
+  function toLocalInput(d) {
+    const p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   }
-
-  function shortTs(ts) {
-    if (!ts) return '';
-    return ts.replace('T', ' ').substring(0, 16);
-  }
-
-  function toLocalInput(date) {
-    // datetime-local input wants YYYY-MM-DDTHH:MM
-    const pad = n => String(n).padStart(2,'0');
-    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  }
-
   function timestamp() {
-    const d = new Date();
-    const pad = n => String(n).padStart(2,'0');
-    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+    const d = new Date(), p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
   }
 </script>
 </body>

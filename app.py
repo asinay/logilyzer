@@ -1,3 +1,4 @@
+import re
 import uuid
 import asyncio
 from pathlib import Path
@@ -9,9 +10,9 @@ from fastapi.staticfiles import StaticFiles
 
 from log_parser import detect_log_type, parse_log_file, LogFile
 from analyzers import get_analyzer
-from analyzers._base import apply_time_filter, raw_log_block
+from analyzers._base import apply_time_filter, raw_log_block, server_info_block
 
-app = FastAPI(title="Logi Report Logs Parser")
+app = FastAPI(title="LogiLyzer")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 OUTPUTS_DIR = Path("outputs")
@@ -100,10 +101,19 @@ async def _run_analyzer(lf: LogFile, time_from: Optional[str], time_to: Optional
         return _unsupported_section(lf)
     try:
         section = await analyzer.analyze(lf, time_from=time_from, time_to=time_to)
-        # Inject filtered raw log before closing </div>
+        # Build extras to inject before closing </div>
+        extras = ""
+        si = server_info_block(lf.headers)
+        if si:
+            extras += "\n" + si
         filtered_df = apply_time_filter(lf.df, time_from, time_to) if lf.has_data else lf.df
         raw = raw_log_block(filtered_df)
-        return section.rstrip().rstrip("</div>").rstrip() + raw + "\n</div>" if raw else section
+        if raw:
+            extras += "\n" + raw
+        if extras:
+            idx = section.rfind("</div>")
+            return (section[:idx] if idx >= 0 else section) + extras + "\n</div>"
+        return section
     except Exception as exc:
         return f'<div class="section error"><h2>{lf.filename}</h2><p>Analysis failed: {exc}</p></div>'
 
@@ -136,14 +146,27 @@ def _build_report(
             f'</div>'
         )
 
-    # Build sidebar nav items
+    # Build sidebar nav items — version pill per file from first versioned header
+    def _file_version(lf: LogFile) -> str:
+        for h in lf.headers:
+            if h.server_version:
+                # Shorten "Logi Report Server V25.1 Service Pack 5" → "V25.1 SP5"
+                v = h.server_version
+                v = re.sub(r"Logi Report Server\s*", "", v, flags=re.IGNORECASE).strip()
+                v = re.sub(r"Service Pack\s*(\d+)", r"SP\1", v, flags=re.IGNORECASE)
+                return v
+        return ""
+
     nav_items = ""
     for lf in log_files:
         sid = _section_id(lf.filename)
+        ver = _file_version(lf)
+        ver_pill = f'<span class="nav-version">{ver}</span>' if ver else ""
         nav_items += (
             f'<a class="nav-item" href="#{sid}" onclick="activate(this)">'
             f'<span class="nav-dot"></span>'
             f'<span class="nav-label">{lf.filename}</span>'
+            f'{ver_pill}'
             f'<span class="nav-badge">{lf.log_type}</span>'
             f'</a>\n'
         )
@@ -154,7 +177,7 @@ def _build_report(
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Logi Report Analysis</title>
+<title>LogiLyzer</title>
 <style>
   *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
@@ -170,16 +193,47 @@ def _build_report(
 
   /* ── Header ── */
   .report-header {{
-    background: #1a3a5c;
+    background: linear-gradient(135deg, #0d1b2e 0%, #1a3a5c 60%, #1e4d7b 100%);
     color: #fff;
-    padding: .9rem 1.5rem;
+    padding: .75rem 1.25rem;
     flex-shrink: 0;
     display: flex;
-    align-items: baseline;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    position: relative;
+    overflow: hidden;
   }}
-  .report-header h1 {{ font-size: 1.15rem; font-weight: 600; white-space: nowrap; }}
-  .report-header p  {{ font-size: .8rem; opacity: .75; }}
+  .report-header::before {{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }}
+  .rh-logo {{
+    width: 30px; height: 30px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 4px rgba(0,180,216,.4));
+  }}
+  .rh-brand {{ line-height: 1.2; }}
+  .rh-name {{
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    display: flex;
+    align-items: baseline;
+  }}
+  .rh-name .logi  {{ color: #fff; }}
+  .rh-name .lyzer {{ color: #38bdf8; font-weight: 400; }}
+  .rh-meta {{
+    font-size: .72rem;
+    color: rgba(255,255,255,.5);
+    margin-left: .75rem;
+  }}
 
   /* ── Layout ── */
   .layout {{
@@ -240,6 +294,16 @@ def _build_report(
     white-space: nowrap;
     flex-shrink: 0;
   }}
+  .nav-version {{
+    font-size: .62rem;
+    background: #d1fae5;
+    color: #065f46;
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-weight: 600;
+  }}
 
   /* ── Main content ── */
   .main {{
@@ -288,6 +352,47 @@ def _build_report(
   table {{ width: 100%; border-collapse: collapse; }}
   th, td {{ padding: .3rem .5rem; }}
   thead tr {{ border-bottom: 2px solid #dee2e6; }}
+
+  /* ── Server info block inside sections ── */
+  .server-info-block {{
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }}
+  .server-info-block summary {{
+    cursor: pointer;
+    padding: .45rem .9rem;
+    font-size: .82rem;
+    font-weight: 600;
+    color: #1a3a5c;
+    background: #f6f8fb;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }}
+  .server-info-block summary::-webkit-details-marker {{ display: none; }}
+  .server-info-block summary::before {{
+    content: "▶";
+    font-size: .6rem;
+    transition: transform .2s;
+  }}
+  .server-info-block[open] summary::before {{ transform: rotate(90deg); }}
+  .si-title {{ flex: 1; }}
+  .si-pill {{
+    font-size: .68rem;
+    font-weight: normal;
+    background: #e8eef4;
+    color: #1a3a5c;
+    border-radius: 3px;
+    padding: 1px 6px;
+  }}
+  .si-body {{
+    padding: .5rem .75rem;
+    overflow-x: auto;
+  }}
 
   /* ── Sidebar filter controls ── */
   .sidebar-filter-block {{
@@ -440,8 +545,23 @@ def _build_report(
 <body>
 
 <div class="report-header">
-  <h1>Logi Report — Log Analysis</h1>
-  <p>{len(log_files)} file{"s" if len(log_files) != 1 else ""} analysed</p>
+  <svg class="rh-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="40" height="40" rx="10" fill="url(#rhlg)"/>
+    <defs>
+      <linearGradient id="rhlg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#0ea5e9"/>
+        <stop offset="100%" stop-color="#0369a1"/>
+      </linearGradient>
+    </defs>
+    <rect x="10" y="10" width="14" height="2" rx="1" fill="rgba(255,255,255,.35)"/>
+    <rect x="10" y="14" width="10" height="2" rx="1" fill="rgba(255,255,255,.25)"/>
+    <polyline points="8,26 13,26 16,19 19,31 22,23 25,26 32,26"
+      stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+  <div class="rh-brand">
+    <div class="rh-name"><span class="logi">Logi</span><span class="lyzer">Lyzer</span></div>
+  </div>
+  <span class="rh-meta">{len(log_files)} file{"s" if len(log_files) != 1 else ""} analysed</span>
 </div>
 
 <div class="layout">

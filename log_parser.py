@@ -21,11 +21,21 @@ import pandas as pd
 
 
 @dataclass
+class ServerRestart:
+    restart_time: str                   # raw string from separator line
+    jvm_version: Optional[str] = None
+    server_version: Optional[str] = None
+    version_number: Optional[str] = None
+    build_label: Optional[str] = None
+
+
+@dataclass
 class LogFile:
     filename: str
     log_type: str
     raw_text: str
     df: Optional[pd.DataFrame] = field(default=None, repr=False)
+    headers: list[ServerRestart] = field(default_factory=list)
 
     @property
     def row_count(self) -> int:
@@ -93,15 +103,21 @@ _MARKER_RE = re.compile(
     r"\]"                                # ]
 )
 
-# Startup section separator
-_SEP_RE = re.compile(r"^={4,}.+={4,}$")
+# Startup section separator  e.g. ====Thu Apr 10 12:12:54 CDT 2025====
+_SEP_RE     = re.compile(r"^={4,}(.+?)={4,}$")
+_SEP_BARE   = re.compile(r"^={4,}")    # detect without capturing
+_JVM_RE     = re.compile(r"Java VM version\s*:\s*(.+)", re.IGNORECASE)
+_VER_RE     = re.compile(r"^Version\s*:\s*(.+)", re.IGNORECASE)
+_VERNUM_RE  = re.compile(r"Version Number\s*:\s*(.+)", re.IGNORECASE)
+_BUILD_RE   = re.compile(r"Internal Version Label\s*:\s*(.+)", re.IGNORECASE)
 
 
 def parse_log_file(filename: str, log_type: str, text: str) -> LogFile:
-    rows = _parse_entries(text)
+    rows, headers = _parse_entries(text)
     if not rows:
         return LogFile(filename=filename, log_type=log_type, raw_text=text,
-                       df=pd.DataFrame(columns=["timestamp", "thread", "level", "message"]))
+                       df=pd.DataFrame(columns=["timestamp", "thread", "level", "message"]),
+                       headers=headers)
 
     df = pd.DataFrame(rows)
     df["timestamp"] = pd.to_datetime(
@@ -111,37 +127,59 @@ def parse_log_file(filename: str, log_type: str, text: str) -> LogFile:
     )
     df.drop(columns=["timestamp_str"], inplace=True)
     df.sort_values("timestamp", inplace=True, ignore_index=True)
-    return LogFile(filename=filename, log_type=log_type, raw_text=text, df=df)
+    return LogFile(filename=filename, log_type=log_type, raw_text=text, df=df, headers=headers)
 
 
-def _parse_entries(text: str) -> list[dict]:
+def _parse_entries(text: str) -> tuple[list[dict], list[ServerRestart]]:
     """
     Walk lines building up a message buffer.  When we encounter a marker,
     flush the buffer + marker as one entry.
+    Also collects ServerRestart records from startup header blocks.
     """
     rows: list[dict] = []
+    headers: list[ServerRestart] = []
     buf: list[str] = []
     in_header = False
+    current_restart: Optional[ServerRestart] = None
 
     for line in text.splitlines():
-        # Skip startup header blocks (between ===...=== separators)
-        if _SEP_RE.match(line.strip()):
+        stripped = line.strip()
+
+        # Startup header separator
+        m_sep = _SEP_RE.match(stripped)
+        if m_sep:
             in_header = True
             buf.clear()
+            current_restart = ServerRestart(restart_time=m_sep.group(1).strip())
+            headers.append(current_restart)
             continue
 
         if in_header:
+            # Capture version fields
+            if current_restart is not None:
+                m = _JVM_RE.search(stripped)
+                if m:
+                    current_restart.jvm_version = m.group(1).strip()
+                m = _VER_RE.match(stripped)
+                if m:
+                    current_restart.server_version = m.group(1).strip()
+                m = _VERNUM_RE.match(stripped)
+                if m:
+                    current_restart.version_number = m.group(1).strip()
+                m = _BUILD_RE.match(stripped)
+                if m:
+                    current_restart.build_label = m.group(1).strip()
+
             # Header ends at the first marker line
             m = _MARKER_RE.search(line)
             if m and m.end() >= len(line.rstrip()) - 1:
                 in_header = False
-                # The header entry itself (usually empty message) — skip it
+                current_restart = None
                 buf.clear()
             continue
 
         m = _MARKER_RE.search(line)
         if m and m.end() >= len(line.rstrip()) - 1:
-            # This line ends with a marker — the message is everything before it
             msg_on_this_line = line[:m.start()].strip()
             buf.append(msg_on_this_line)
             message = "\n".join(l for l in buf if l).strip()
@@ -155,4 +193,4 @@ def _parse_entries(text: str) -> list[dict]:
         else:
             buf.append(line.rstrip())
 
-    return rows
+    return rows, headers

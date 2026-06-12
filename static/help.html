@@ -3,18 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Enabling Logi Report Logging</title>
+<title>Enabling Logi Report Logging — LogiLyzer</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #f0f4f8; color: #1a1a2e; line-height: 1.6; }
   header {
-    background: #1a3a5c; color: #fff;
-    padding: 1rem 2rem;
-    display: flex; align-items: center; gap: 1rem;
+    background: linear-gradient(135deg, #0d1b2e 0%, #1a3a5c 60%, #1e4d7b 100%);
+    color: #fff;
+    padding: .85rem 2rem;
+    display: flex; align-items: center; gap: .85rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
   }
-  header h1 { font-size: 1.2rem; font-weight: 600; }
-  header a  { margin-left: auto; color: rgba(255,255,255,.75); font-size: .85rem; text-decoration: none; }
-  header a:hover { color: #fff; }
+  header a  { margin-left: auto; color: rgba(255,255,255,.65); font-size: .82rem; text-decoration: none; border: 1px solid rgba(255,255,255,.2); border-radius: 5px; padding: .3rem .7rem; }
+  header a:hover { color: #fff; background: rgba(255,255,255,.1); }
   main { max-width: 860px; margin: 2rem auto; padding: 0 1rem 3rem; }
   h2 { font-size: 1.05rem; color: #1a3a5c; margin: 2rem 0 .6rem; border-bottom: 2px solid #d0dcea; padding-bottom: .35rem; }
   h3 { font-size: .95rem; margin: 1.25rem 0 .4rem; color: #334155; }
@@ -48,8 +49,26 @@
 <body>
 
 <header>
-  <h1>Enabling Logi Report Logging</h1>
-  <a href="/">&larr; Back to app</a>
+  <svg style="width:32px;height:32px;flex-shrink:0;filter:drop-shadow(0 1px 4px rgba(0,180,216,.4))" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="40" height="40" rx="10" fill="url(#hlg)"/>
+    <defs>
+      <linearGradient id="hlg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#0ea5e9"/>
+        <stop offset="100%" stop-color="#0369a1"/>
+      </linearGradient>
+    </defs>
+    <rect x="10" y="10" width="14" height="2" rx="1" fill="rgba(255,255,255,.35)"/>
+    <rect x="10" y="14" width="10" height="2" rx="1" fill="rgba(255,255,255,.25)"/>
+    <polyline points="8,26 13,26 16,19 19,31 22,23 25,26 32,26"
+      stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+  <div style="line-height:1.2">
+    <div style="font-size:1rem;font-weight:800;letter-spacing:-.02em">
+      <span style="color:#fff">Logi</span><span style="color:#38bdf8;font-weight:400">Lyzer</span>
+    </div>
+    <div style="font-size:.72rem;opacity:.5;margin-top:1px">Enabling Logi Report Logging</div>
+  </div>
+  <a href="/" style="margin-left:auto">&larr; Back to app</a>
 </header>
 
 <main>

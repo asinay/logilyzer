@@ -50,6 +50,55 @@ def section_wrap(title: str, badge: str, body: str) -> str:
     )
 
 
+def server_info_block(headers: list) -> str:
+    """Collapsible card showing server restart records from file headers."""
+    if not headers:
+        return ""
+
+    versioned = [h for h in headers if h.server_version or h.jvm_version]
+    all_restarts = headers  # every separator is a restart
+
+    # Pick the first versioned header for the summary line
+    first = versioned[0] if versioned else None
+    summary_version = first.server_version if first else "Logi Report Server"
+    summary_build   = first.build_label    if first else ""
+    summary_jvm     = first.jvm_version    if first else ""
+
+    summary_extra = ""
+    if summary_build:
+        summary_extra += f' &nbsp;<span style="font-weight:normal;color:#64748b;font-size:.75rem">{summary_build}</span>'
+
+    restart_rows = "".join(
+        f"<tr>"
+        f"<td style='padding:.3rem .5rem;font-size:.8rem;white-space:nowrap'>{h.restart_time}</td>"
+        f"<td style='padding:.3rem .5rem;font-size:.8rem'>{h.server_version or '—'}</td>"
+        f"<td style='padding:.3rem .5rem;font-size:.8rem;font-family:monospace'>{h.jvm_version or '—'}</td>"
+        f"<td style='padding:.3rem .5rem;font-size:.8rem;font-family:monospace'>{h.build_label or '—'}</td>"
+        f"</tr>"
+        for h in all_restarts
+    )
+
+    return (
+        f'<details class="server-info-block" open>'
+        f'<summary>'
+        f'<span class="si-title">{summary_version}{summary_extra}</span>'
+        f'<span class="si-pill">{len(all_restarts)} restart{"s" if len(all_restarts) != 1 else ""}</span>'
+        f'</summary>'
+        f'<div class="si-body">'
+        f'<table style="border-collapse:collapse;width:100%">'
+        f'<thead><tr>'
+        f'<th style="text-align:left;padding:.3rem .5rem;font-size:.75rem;color:#64748b;border-bottom:1px solid #e2e8f0">Restart time</th>'
+        f'<th style="text-align:left;padding:.3rem .5rem;font-size:.75rem;color:#64748b;border-bottom:1px solid #e2e8f0">Server version</th>'
+        f'<th style="text-align:left;padding:.3rem .5rem;font-size:.75rem;color:#64748b;border-bottom:1px solid #e2e8f0">JVM</th>'
+        f'<th style="text-align:left;padding:.3rem .5rem;font-size:.75rem;color:#64748b;border-bottom:1px solid #e2e8f0">Build</th>'
+        f'</tr></thead>'
+        f'<tbody>{restart_rows}</tbody>'
+        f'</table>'
+        f'</div>'
+        f'</details>'
+    )
+
+
 def no_data_section(filename: str, log_type: str, reason: str = "") -> str:
     msg = reason or "No time-series data could be extracted from this file."
     return section_wrap(

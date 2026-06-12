@@ -1,32 +1,44 @@
-# Logi Report Logs Parser
+# LogiLyzer
 
-Interactive web tool for uploading, visualizing, and exporting analysis of **Logi Report Server** log files.
+A local web tool for support engineers working with **Logi Report Server** log files. Upload a customer's logs, get interactive charts and a filterable raw-log table, export a self-contained HTML report you can attach to a ticket or share with the team — no installation required on the customer's side, nothing uploaded to the cloud.
 
-## What it does
+---
 
-Upload multiple log files at once → get interactive Plotly charts per log type → export a self-contained HTML report. All processing is local; nothing leaves your machine.
+## Why this tool
 
-**Supported log types and what gets visualized:**
+Reading raw `.log` files to diagnose a performance issue or track down an error is slow and error-prone. This tool turns a folder of log files into:
 
-| Log file | Charts & tables |
-|----------|----------------|
-| `Engine.log` | Operation elapsed times, thread activity, level distribution |
-| `DHTML.log` | Action cost over time, slowest-actions table (avg / P95 / max) |
-| `Debug.log` | Level distribution over time |
-| `Error.log` | Error/warning rate timeline, exception class breakdown, top messages |
-| `Access.log` | Request/response volume, HTTP method distribution, top remote IPs |
-| `Event.log` | Level distribution over time |
+- **Timeline charts** — see exactly when errors spiked, when queue depth grew, or when a slow action started
+- **Per-log analytics** — each log type gets charts tailored to what it captures (elapsed times, queue depth, HTTP activity, exception breakdowns, etc.)
+- **Filterable raw log** — search, filter by level/thread, sort columns — without leaving the browser
+- **Server version badge** — immediately see which Logi Report version the customer is running
+- **Exportable report** — one self-contained HTML file you can attach to a Zendesk/Jira ticket
+
+---
+
+## Supported log types
+
+| Log file | What you see |
+|----------|-------------|
+| `Engine.log` | Operation elapsed times scatter, thread activity, level distribution |
+| `DHTML.log` | Action cost over time, slowest-actions table (count / avg / P95 / max) |
+| `Access.log` | Request/response volume, HTTP status codes, method distribution, top IPs & paths |
+| `Error.log` | Error rate timeline, exception class breakdown, top error messages table |
 | `Dump.log` | OnDemand & Scheduled task queue depth (Running / Queuing / Waiting) |
-| `Performance.log` | Operation elapsed times (same as Engine) |
+| `Performance.log` | Operation elapsed times (same view as Engine) |
+| `Debug.log` | Level distribution over time |
+| `Event.log` | Level distribution over time |
+| `Manage.log` | Level distribution over time |
+| `Page Report.log` | Level distribution over time |
 
-## Requirements
+---
 
-- Python 3.9+
+## Setup (one-time)
 
-## Setup
+Requires **Python 3.9+**.
 
 ```bash
-# Create and activate virtual environment
+# Clone or download this repo, then:
 python -m venv .venv
 
 # Windows
@@ -35,31 +47,53 @@ python -m venv .venv
 # macOS / Linux
 source .venv/bin/activate
 
-# Install dependencies
 pip install -r requirements.txt
 ```
 
 ## Run
 
 ```bash
-# Activate venv first (if not already active), then:
+# Activate venv first, then:
 uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-## Usage
+---
 
-1. **Upload** — drag and drop one or more `.log` files (any mix of log types)
-2. **Filter** — optionally set a time range; the UI pre-fills min/max timestamps from your files
-3. **Export** — select which files to include, click **Export Report** → downloads a self-contained HTML file with all charts
+## Typical support workflow
 
-Log type is detected automatically from the filename. Files with 0 parsed rows (empty or header-only) are shown in the list but produce no charts.
+1. Ask the customer to send all `.log` files from `<install_root>\logs\` (see [Enabling logging](docs/enabling-logging.md) if they haven't configured logging yet)
+2. **Upload** — drag and drop all files at once; log type is auto-detected from filename
+3. **Filter** — the time range pre-fills from the actual timestamps in the files; narrow it to the incident window if needed
+4. **Export** — downloads a self-contained `.html` report
+5. Attach the report to the ticket, or open it locally to investigate
 
-## Output
+The report includes a **server version pill** on each file in the sidebar — useful when a customer sends logs from multiple servers or a version-upgrade scenario.
 
-The exported HTML is fully self-contained (Plotly loaded from CDN). Open it in any browser, no server needed. Reports are also saved locally to `outputs/`.
+---
 
-## Enabling logging in Logi Report Server
+## Sample report
 
-See **[docs/enabling-logging.md](docs/enabling-logging.md)** for a full guide on how to configure Logi Report to produce the log files this tool expects.
+[`demo/sample_report.html`](demo/sample_report.html) is a pre-generated example built from synthetic log data covering Engine, Error, Access, Dump, and DHTML logs. Open it locally in any browser to see what the output looks like before running the tool.
+
+To regenerate it:
+
+```bash
+python scripts/generate_demo.py
+```
+
+## Enabling logging on the customer's server
+
+If a customer hasn't configured logging, point them to **[docs/enabling-logging.md](docs/enabling-logging.md)** or the in-app help page (`❓ How to enable logging` button).
+
+Minimum recommended setup: **Engine, Error, Access, DHTML, Dump** at `INFO` level with a `RollingFile` appender (`50MB` max size, 3 backups).
+
+---
+
+## Notes
+
+- All processing is local — no data leaves your machine
+- Reports are also saved to `outputs/` for later reference
+- Files with 0 parsed rows (empty or header-only) appear in the list but produce no charts
+- Multiple files can be uploaded in one batch; use the checkboxes to include/exclude per file
