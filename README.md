@@ -81,13 +81,13 @@ No Python installation required.
 
 ```bash
 # macOS / Linux
-docker run -p 8742:8000 -v $(pwd)/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
+docker run --name logilyzer -p 8742:8000 -v $(pwd)/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
 
 # Windows PowerShell
-docker run -p 8742:8000 -v ${PWD}/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
+docker run --name logilyzer -p 8742:8000 -v ${PWD}/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
 
 # Windows CMD
-docker run -p 8742:8000 -v %cd%/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
+docker run --name logilyzer -p 8742:8000 -v %cd%/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
 ```
 
 **Option B — build from source:**
