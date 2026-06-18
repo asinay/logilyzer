@@ -77,13 +77,21 @@ Reading raw `.log` files to diagnose a performance issue or track down an error 
 
 No Python installation required.
 
+**Option A — pull pre-built image (no clone needed):**
+
+```bash
+docker run -p 8742:8000 -v $(pwd)/outputs:/app/outputs ghcr.io/asinay/logilyzer:latest
+```
+
+**Option B — build from source:**
+
 ```bash
 git clone https://github.com/asinay/logilyzer.git
 cd logilyzer
-docker compose up
+docker compose up --build
 ```
 
-Open [http://localhost:8000](http://localhost:8000). Exported reports are saved to `./outputs/` on your machine.
+Open [http://localhost:8742](http://localhost:8742). Exported reports are saved to `./outputs/` on your machine.
 
 ---
 
