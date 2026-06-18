@@ -100,6 +100,10 @@ docker compose up --build
 
 Open [http://localhost:8742](http://localhost:8742). Exported reports are saved to `./outputs/` on your machine.
 
+> **Port conflict?** The container always listens on `8000` internally — only the host port (`8742`) matters. To change it:
+> - **docker run:** replace `-p 8742:8000` with `-p YOUR_PORT:8000`
+> - **docker compose:** set `LOGILYZER_PORT=YOUR_PORT` in a `.env` file next to `docker-compose.yml`
+
 ---
 
 ## Setup (one-time)
