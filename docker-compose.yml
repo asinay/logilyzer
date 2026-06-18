@@ -1,7 +1,8 @@
 services:
   logilyzer:
     build: .
+    image: ghcr.io/asinay/logilyzer:latest
     ports:
-      - "8000:8000"
+      - "8742:8000"
     volumes:
       - ./outputs:/app/outputs
