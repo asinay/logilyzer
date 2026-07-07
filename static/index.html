@@ -338,7 +338,7 @@
     </div>
   </div>
 
-  <a class="help-link" href="/static/help.html" target="_blank">
+  <a class="help-link" href="static/help.html" target="_blank">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="display:inline;vertical-align:-.15em;margin-right:4px">
       <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
       <path d="M8 11V8M8 5.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -482,7 +482,7 @@
     files.forEach(f => form.append('files', f));
 
     try {
-      const res  = await fetch('/upload', { method: 'POST', body: form });
+      const res  = await fetch('upload', { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
 
@@ -559,7 +559,7 @@
     if (timeTo.value)   form.append('time_to',   timeTo.value.replace('T', ' '));
 
     try {
-      const res = await fetch('/export', { method: 'POST', body: form });
+      const res = await fetch('export', { method: 'POST', body: form });
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || 'Export failed'); }
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
