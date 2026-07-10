@@ -75,8 +75,15 @@
     margin-top: 1px;
   }
 
-  .help-link {
+  .header-links {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    position: relative;
+  }
+
+  .help-link {
     font-size: .78rem;
     color: rgba(255,255,255,.7);
     text-decoration: none;
@@ -84,7 +91,6 @@
     border-radius: 6px;
     padding: .35rem .85rem;
     white-space: nowrap;
-    position: relative;
     transition: background .15s, color .15s, border-color .15s;
     backdrop-filter: blur(4px);
     background: rgba(255,255,255,.05);
@@ -94,6 +100,41 @@
     color: #fff;
     border-color: rgba(255,255,255,.35);
   }
+
+  .gh-link {
+    font-size: .78rem;
+    color: rgba(255,255,255,.7);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    padding: .35rem .85rem;
+    white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+    backdrop-filter: blur(4px);
+    background: rgba(255,255,255,.05);
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+  }
+  .gh-link:hover {
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border-color: rgba(255,255,255,.35);
+  }
+
+  /* ── Footer ───────────────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 1.5rem 1rem 2rem;
+    font-size: .75rem;
+    color: #94a3b8;
+  }
+  footer a {
+    color: #64748b;
+    text-decoration: none;
+    transition: color .15s;
+  }
+  footer a:hover { color: #0ea5e9; }
 
   /* ── Main layout ──────────────────────────────────────────── */
   main { max-width: 820px; margin: 2rem auto; padding: 0 1rem 3rem; }
@@ -338,13 +379,29 @@
     </div>
   </div>
 
-  <a class="help-link" href="static/help.html" target="_blank">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="display:inline;vertical-align:-.15em;margin-right:4px">
-      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
-      <path d="M8 11V8M8 5.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    How to enable logging
-  </a>
+  <div class="header-links">
+    <a class="help-link" href="/static/help.html" target="_blank" title="How to enable logging in Logi Report Server">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="display:inline;vertical-align:-.15em;margin-right:4px">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 11V8M8 5.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      How to enable server logging
+    </a>
+    <a class="gh-link" href="https://github.com/asinay/logilyzer/issues/new?labels=bug&template=bug_report.md" target="_blank" title="Report a bug on GitHub">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+      Report bug
+    </a>
+    <a class="gh-link" href="https://github.com/asinay/logilyzer/issues/new?labels=enhancement&template=feature_request.md" target="_blank" title="Request a feature on GitHub">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      Request feature
+    </a>
+  </div>
 </header>
 
 <main>
@@ -438,6 +495,14 @@
   </div>
 
 </main>
+
+<footer>
+  <a href="https://github.com/asinay/logilyzer" target="_blank">LogiLyzer on GitHub</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/asinay/logilyzer/issues/new?labels=bug&template=bug_report.md" target="_blank">Report bug</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/asinay/logilyzer/issues/new?labels=enhancement&template=feature_request.md" target="_blank">Request feature</a>
+</footer>
 
 <script>
   let sessionId = null;
